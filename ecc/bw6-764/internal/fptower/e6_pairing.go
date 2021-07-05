@@ -2,24 +2,32 @@ package fptower
 
 import (
 	"github.com/consensys/gnark-crypto/ecc/bw6-764/fp"
-	"math/bits"
 )
 
-// Expt set z to x^t in E6 and return z
-// TODO: optimized Expt
-func (z *E6) Expt(x *E6) *E6 {
-	const tAbsVal uint64 = 11170052975785672705
+func (z *E6) nSquare(n int) {
+	for i := 0; i < n; i++ {
+		z.CyclotomicSquare(z)
+	}
+}
 
+// Expt set z to x^t in E6 and return z
+func (z *E6) Expt(x *E6) *E6 {
+	// const tAbsVal uint64 = 11170052975785672705
+	// tAbsVal in binary: 1001101100000100000000000000000000000000000000000000000000000001
 	var result E6
 	result.Set(x)
-
-	l := bits.Len64(tAbsVal) - 2
-	for i := l; i >= 0; i-- {
-		result.CyclotomicSquare(&result)
-		if tAbsVal&(1<<uint(i)) != 0 {
-			result.Mul(&result, x)
-		}
-	}
+	result.nSquare(3)
+	result.Mul(&result, x)
+	result.CyclotomicSquare(&result)
+	result.Mul(&result, x)
+	result.nSquare(2)
+	result.Mul(&result, x)
+	result.CyclotomicSquare(&result)
+	result.Mul(&result, x)
+	result.nSquare(6)
+	result.Mul(&result, x)
+	result.nSquare(50)
+	result.Mul(&result, x)
 
 	z.Set(&result)
 	return z
