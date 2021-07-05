@@ -40,11 +40,12 @@ const (
 	BLS12_381
 	BLS24_315
 	BW6_761
+	BW6_764
 )
 
 // Implemented return the list of curves fully implemented in gnark-crypto
 func Implemented() []ID {
-	return []ID{BN254, BLS12_377, BLS12_379, BLS12_381, BW6_761, BLS24_315}
+	return []ID{BN254, BLS12_377, BLS12_379, BLS12_381, BW6_761, BLS24_315, BW6_764}
 }
 
 func (id ID) String() string {
