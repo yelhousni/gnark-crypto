@@ -4,29 +4,38 @@ import (
 	"github.com/consensys/gnark-crypto/ecc/bw6-764/fp"
 )
 
-func (z *E6) nSquare(n int) {
-	for i := 0; i < n; i++ {
-		z.CyclotomicSquare(z)
-	}
-}
-
 // Expt set z to x^t in E6 and return z
 func (z *E6) Expt(x *E6) *E6 {
 	// const tAbsVal uint64 = 11170052975785672705
 	// tAbsVal in binary: 1001101100000100000000000000000000000000000000000000000000000001
-	var result E6
-	result.Set(x)
-	result.nSquare(3)
-	result.Mul(&result, x)
-	result.CyclotomicSquare(&result)
-	result.Mul(&result, x)
-	result.nSquare(2)
-	result.Mul(&result, x)
-	result.CyclotomicSquare(&result)
-	result.Mul(&result, x)
-	result.nSquare(6)
-	result.Mul(&result, x)
-	result.nSquare(50)
+	// drop the low 50 bits (all 0 except the least significant bit): 10011011000001 = 9921
+	// Shortest addition chains can be found at https://wwwhomes.uni-bielefeld.de/achim/addition_chain.html
+	var result, x4, x5 E6
+	result.Set(x)                    //  0                1
+	result.CyclotomicSquare(&result) //  1( 0)            2
+	result.CyclotomicSquare(&result) //  2( 1)            4
+	x4.Set(&result)                  //  save x4 for step 4
+	result.Mul(&result, x)           //  3( 2, 0)         5
+	x5.Set(&result)                  //  save x5 for step 8
+	result.Mul(&result, &x4)         //  4( 3, 2)         9
+	result.CyclotomicSquare(&result) //  5( 4)           18
+	result.CyclotomicSquare(&result) //  6( 5)           36
+	result.CyclotomicSquare(&result) //  7( 6)           72
+	result.Mul(&result, &x5)         //  8( 7, 3)        77
+	result.CyclotomicSquare(&result) //  9( 8)          154
+	result.Mul(&result, x)           // 10( 9, 0)       155
+	result.CyclotomicSquare(&result) // 11(10)          310
+	result.CyclotomicSquare(&result) // 12(11)          620
+	result.CyclotomicSquare(&result) // 13(12)         1240
+	result.CyclotomicSquare(&result) // 14(13)         2480
+	result.CyclotomicSquare(&result) // 15(14)         4960
+	result.CyclotomicSquare(&result) // 16(15)         9920
+	result.Mul(&result, x)           // 17(16, 0)      9921
+
+	// the remaining 50 bits
+	for i := 0; i < 50; i++ {
+		result.CyclotomicSquare(&result)
+	}
 	result.Mul(&result, x)
 
 	z.Set(&result)
