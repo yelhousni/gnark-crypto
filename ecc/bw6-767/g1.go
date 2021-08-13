@@ -366,18 +366,10 @@ func (p *G1Jac) IsOnCurve() bool {
 }
 
 // IsInSubGroup returns true if p is on the r-torsion, false otherwise.
-// Z[r,0]+Z[-lambdaG1Affine, 1] is the kernel
-// of (u,v)->u+lambdaG1Affinev mod r. Expressing r, lambdaG1Affine as
-// polynomials in x, a short vector of this Zmodule is
-// 1, x**2. So we check that p+x**2*phi(p)
-// is the infinity.
 func (p *G1Jac) IsInSubGroup() bool {
 
 	var res G1Jac
-	res.phi(p).
-		ScalarMultiplication(&res, &xGen).
-		ScalarMultiplication(&res, &xGen).
-		AddAssign(p)
+	res.ScalarMultiplication(p, fr.Modulus())
 
 	return res.IsOnCurve() && res.Z.IsZero()
 
@@ -486,8 +478,6 @@ func (p *G1Jac) mulGLV(a *G1Jac, s *big.Int) *G1Jac {
 	return p
 }
 
-/*
-// TODO
 // ClearCofactor maps a point in curve to r-torsion
 func (p *G1Affine) ClearCofactor(a *G1Affine) *G1Affine {
 	var _p G1Jac
@@ -499,8 +489,40 @@ func (p *G1Affine) ClearCofactor(a *G1Affine) *G1Affine {
 
 // ClearCofactor maps a point in E(Fp) to E(Fp)[r]
 func (p *G1Jac) ClearCofactor(a *G1Jac) *G1Jac {
+	var uP, u2P, u3P, L0, L1, t1, t2 G1Jac
+	var d1, d2, d3, ht big.Int
+
+	d1.SetInt64(31)
+	d2.SetInt64(11) // negative
+	d3.SetInt64(7)
+	ht.SetInt64(4) // negative
+
+	uP.ScalarMultiplication(a, &xGen) // negative
+	u2P.ScalarMultiplication(&uP, &xGen)
+	u3P.ScalarMultiplication(&u2P, &xGen) // negative
+
+	L0.Set(a).SubAssign(&uP).
+		ScalarMultiplication(&L0, &d1)
+	t1.ScalarMultiplication(a, &ht)
+	L0.AddAssign(&t1)
+	t1.Set(a).AddAssign(&u2P).
+		AddAssign(&uP).
+		AddAssign(&uP)
+	t2.ScalarMultiplication(&t1, &d2)
+	L0.AddAssign(&t2)
+
+	L1.Set(a).SubAssign(&u3P).
+		SubAssign(&u2P).
+		ScalarMultiplication(&L1, &d1)
+	t2.ScalarMultiplication(&t1, &ht)
+	L1.AddAssign(&t2)
+	t1.ScalarMultiplication(a, &d3)
+	L1.SubAssign(&t1)
+
+	p.phi(&L1).AddAssign(&L0)
+
+	return p
 }
-*/
 
 // -------------------------------------------------------------------------------------------------
 // Jacobian extended

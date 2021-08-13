@@ -379,7 +379,6 @@ func TestG1AffineOps(t *testing.T) {
 	properties.TestingRun(t, gopter.ConsoleReporter(false))
 }
 
-/*
 func TestG1AffineCofactorCleaning(t *testing.T) {
 
 	parameters := gopter.DefaultTestParameters()
@@ -414,7 +413,6 @@ func TestG1AffineCofactorCleaning(t *testing.T) {
 	properties.TestingRun(t, gopter.ConsoleReporter(false))
 
 }
-*/
 
 func TestG1AffineBatchScalarMultiplication(t *testing.T) {
 
@@ -520,7 +518,6 @@ func BenchmarkG1JacScalarMul(b *testing.B) {
 
 }
 
-/*
 func BenchmarkG1AffineCofactorClearing(b *testing.B) {
 	var a G1Jac
 	a.Set(&g1Gen)
@@ -528,7 +525,6 @@ func BenchmarkG1AffineCofactorClearing(b *testing.B) {
 		a.ClearCofactor(&a)
 	}
 }
-*/
 
 func BenchmarkG1JacAdd(b *testing.B) {
 	var a G1Jac
