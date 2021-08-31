@@ -19,6 +19,7 @@ package bls12381
 import (
 	"math"
 	"math/big"
+	"runtime"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bls12-381/fr"
@@ -370,22 +371,18 @@ func (p *G2Jac) IsOnCurve() bool {
 	return left.Equal(&right)
 }
 
-// IsInSubGroup returns true if p is on the r-torsion, false otherwise.
-// Z[r,0]+Z[-lambdaG2Affine, 1] is the kernel
-// of (u,v)->u+lambdaG2Affinev mod r. Expressing r, lambdaG2Affine as
-// polynomials in x, a short vector of this Zmodule is
-// 1, x**2. So we check that p+x**2*phi(p)
-// is the infinity.
+// https://eprint.iacr.org/2019/814.pdf, 3.1
+// z*psi^3 - psi^2 + 1 = 0 <==> -z*(psi o phi) + phi + 1 = 0
 func (p *G2Jac) IsInSubGroup() bool {
-
-	var res G2Jac
-	res.phi(p).
+	var res, tmp G2Jac
+	tmp.Set(p)
+	tmp.X.MulByElement(&tmp.X, &thirdRootOneG1)
+	res.psi(&tmp).
 		ScalarMultiplication(&res, &xGen).
-		ScalarMultiplication(&res, &xGen).
+		AddAssign(&tmp).
 		AddAssign(p)
 
 	return res.IsOnCurve() && res.Z.IsZero()
-
 }
 
 // mulWindowed 2-bits windowed exponentiation
@@ -511,32 +508,26 @@ func (p *G2Affine) ClearCofactor(a *G2Affine) *G2Affine {
 
 // ClearCofactor maps a point in curve to r-torsion
 func (p *G2Jac) ClearCofactor(a *G2Jac) *G2Jac {
-	// cf https://pdfs.semanticscholar.org/e305/a02d91f222de4fe62d4b5689d3b03c7db0c3.pdf, 3.1
-	var xg, xxg, xxxg, res, t G2Jac
+	// https://eprint.iacr.org/2017/419.pdf, 4.1
+	var xg, xxg, res, t G2Jac
 	xg.ScalarMultiplication(a, &xGen).Neg(&xg)
 	xxg.ScalarMultiplication(&xg, &xGen).Neg(&xxg)
-	xxxg.ScalarMultiplication(&xxg, &xGen).Neg(&xxxg)
 
-	res.Set(a).
-		Double(&res).
-		Double(&res).
+	res.Set(&xxg).
 		SubAssign(&xg).
-		SubAssign(&xxg).
-		AddAssign(&xxxg)
+		SubAssign(a)
 
-	t.Set(a).
-		Neg(&t).
-		AddAssign(&xg).
-		AddAssign(&xg).
-		SubAssign(&xxg).
-		psi(&t).
-		AddAssign(a).
-		SubAssign(&xg).
-		SubAssign(&xxg).
-		AddAssign(&xxxg).
+	t.Set(&xg).
+		SubAssign(a).
 		psi(&t)
 
 	res.AddAssign(&t)
+
+	t.Double(a)
+	t.X.MulByElement(&t.X, &thirdRootOneG1)
+
+	res.SubAssign(&t)
+
 	p.Set(&res)
 
 	return p
@@ -921,7 +912,7 @@ func BatchScalarMultiplicationG2(base *G2Affine, scalars []fr.Element) []G2Affin
 		baseTable[i].AddMixed(base)
 	}
 
-	pScalars := partitionScalars(scalars, c)
+	pScalars := partitionScalars(scalars, c, false, runtime.NumCPU())
 
 	// compute offset and word selector / shift to select the right bits of our windows
 	selectors := make([]selector, nbChunks)
