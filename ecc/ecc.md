@@ -4,7 +4,10 @@
 * BN254 (Ethereum)
 * BLS12-377 (ZEXE)
 * BW6-761 (EC supporting pairing on BLS12-377 field of definition)
-* BLS24-315
+* BLS12-379 (alternative to BLS12-377 with higher 2-adicity)
+* BW6-672 (EC supporting pairing on BLS12-379 field of definition)
+* BW6-672 (EC supporting pairing on BLS12-379 field of definition with conservative security)
+* BLS24-315 (optmized for KZG-based SNARKs)
 * BW6-633 (EC supporting pairing on BLS24-315 field of definition)
 
 ### Twisted edwards curves

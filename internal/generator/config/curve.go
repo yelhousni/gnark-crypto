@@ -37,6 +37,10 @@ func (c *Curve) ID() ecc.ID {
 		return ecc.BLS24_315
 	case "bls12-379":
 		return ecc.BLS12_379
+	// case "bw6-764":
+	// 	return ecc.BW6_764
+	// case "bw6-672":
+	// 	return ecc.BW6_672
 	default:
 		panic("not implemented")
 	}
