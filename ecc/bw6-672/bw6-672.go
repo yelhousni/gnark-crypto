@@ -102,7 +102,7 @@ func init() {
 	ecc.NafDecomposition(T1, loopCounter1[:])
 
 	// xGen^5-xGen^4-xGen (negative)
-	T2, _ := new(big.Int).SetString("345131030376204096837580131803672448876874137601", 10)
+	T2, _ := new(big.Int).SetString("345131030376204096837580131803633448876874137601", 10)
 	ecc.NafDecomposition(T2, loopCounter2[:])
 
 	g1Infinity.X.SetOne()
