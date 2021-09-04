@@ -285,6 +285,7 @@ func (z *E6) SetBytes(e []byte) error {
 var frModulus = fr.Modulus()
 
 // IsInSubGroup ensures GT/E6 is in correct sugroup
+// TODO
 func (z *E6) IsInSubGroup() bool {
 	var one, _z E6
 	one.SetOne()
