@@ -19,6 +19,7 @@ package bls12379
 import (
 	"math"
 	"math/big"
+	"runtime"
 
 	"github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/bls12-379/fp"
@@ -56,6 +57,30 @@ func (p *G1Affine) ScalarMultiplication(a *G1Affine, s *big.Int) *G1Affine {
 	_p.FromAffine(a)
 	_p.mulGLV(&_p, s)
 	p.FromJacobian(&_p)
+	return p
+}
+
+// Add adds two point in affine coordinates.
+// This should rarely be used as it is very inneficient compared to Jacobian
+// TODO implement affine addition formula
+func (p *G1Affine) Add(a, b *G1Affine) *G1Affine {
+	var p1, p2 G1Jac
+	p1.FromAffine(a)
+	p2.FromAffine(b)
+	p1.AddAssign(&p2)
+	p.FromJacobian(&p1)
+	return p
+}
+
+// Sub subs two point in affine coordinates.
+// This should rarely be used as it is very inneficient compared to Jacobian
+// TODO implement affine addition formula
+func (p *G1Affine) Sub(a, b *G1Affine) *G1Affine {
+	var p1, p2 G1Jac
+	p1.FromAffine(a)
+	p2.FromAffine(b)
+	p1.SubAssign(&p2)
+	p.FromJacobian(&p1)
 	return p
 }
 
@@ -870,7 +895,7 @@ func BatchScalarMultiplicationG1(base *G1Affine, scalars []fr.Element) []G1Affin
 		baseTable[i].AddMixed(base)
 	}
 
-	pScalars := partitionScalars(scalars, c)
+	pScalars := partitionScalars(scalars, c, false, runtime.NumCPU())
 
 	// compute offset and word selector / shift to select the right bits of our windows
 	selectors := make([]selector, nbChunks)
