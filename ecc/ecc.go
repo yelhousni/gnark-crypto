@@ -60,6 +60,8 @@ func (id ID) String() string {
 		return "bn254"
 	case BW6_761:
 		return "bw6_761"
+	case BW6_764:
+		return "bw6_764"
 	case BW6_633:
 		return "bw6_633"
 	case BW6_672:
