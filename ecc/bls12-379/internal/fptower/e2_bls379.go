@@ -27,8 +27,8 @@ func (z *E2) Mul(x, y *E2) *E2 {
 	b.Mul(&x.A0, &y.A0)
 	c.Mul(&x.A1, &y.A1)
 	z.A1.Sub(&a, &b).Sub(&z.A1, &c)
-	z.A0.Double(&c).Double(&z.A0).Add(&z.A0, &c)
-	z.A0.Sub(&b, &z.A0)
+	fp.MulBy5(&c)
+	z.A0.Sub(&b, &c)
 	return z
 }
 
@@ -37,7 +37,9 @@ func (z *E2) Square(x *E2) *E2 {
 	//algo 22 https://eprint.iacr.org/2010/354.pdf
 	var c0, c2 fp.Element
 	c0.Add(&x.A0, &x.A1)
-	c2.Double(&x.A1).Double(&c2).Add(&c2, &x.A1).Neg(&c2).Add(&c2, &x.A0)
+	c2.Neg(&x.A1)
+	fp.MulBy5(&c2)
+	c2.Add(&c2, &x.A0)
 
 	c0.Mul(&c0, &c2) // (x1+x2)*(x1+(u**2)x2)
 	c2.Mul(&x.A0, &x.A1).Double(&c2)
@@ -50,10 +52,11 @@ func (z *E2) Square(x *E2) *E2 {
 
 // MulByNonResidue multiplies a E2 by (5,1)
 func (z *E2) MulByNonResidue(x *E2) *E2 {
-	var a, b fp.Element
 	c := x.A0
-	a.Double(&x.A0).Double(&a).Add(&a, &x.A0)
-	b.Double(&x.A1).Double(&b).Add(&b, &x.A1)
+    a := x.A0
+    b := x.A1
+    fp.MulBy5(&a)
+    fp.MulBy5(&b)
 	z.A0.Sub(&a, &b)
 	z.A1.Add(&b, &c)
 	return z
@@ -61,6 +64,7 @@ func (z *E2) MulByNonResidue(x *E2) *E2 {
 
 // MulByNonResidueInv multiplies a E2 by (5,1)^{-1}
 func (z *E2) MulByNonResidueInv(x *E2) *E2 {
+	//z.A1.MulByNonResidueInv(&x.A0)
 	var nonResInv E2
 	nonResInv.A0 = fp.Element{
 		15001115058802174625,
@@ -69,7 +73,7 @@ func (z *E2) MulByNonResidueInv(x *E2) *E2 {
 		3470226792022368681,
 		368586124710534677,
 		144318007828352746,
-	}
+    }
 	nonResInv.A1 = fp.Element{
 		8169829964025237780,
 		15221973684595632812,
@@ -79,7 +83,7 @@ func (z *E2) MulByNonResidueInv(x *E2) *E2 {
 		274254260964319711,
 	}
 	z.Mul(x, &nonResInv)
-	return z
+    return z
 }
 
 // Inverse sets z to the E2-inverse of x, returns z
@@ -91,7 +95,8 @@ func (z *E2) Inverse(x *E2) *E2 {
 	b := &x.A1
 	t0.Square(a)
 	t1.Square(b)
-	tmp.Double(&t1).Double(&tmp).Add(&tmp, &t1)
+	tmp.Set(&t1)
+	fp.MulBy5(&tmp)
 	t0.Add(&t0, &tmp)
 	t1.Inverse(&t0)
 	z.A0.Mul(a, &t1)
@@ -104,6 +109,7 @@ func (z *E2) Inverse(x *E2) *E2 {
 func (z *E2) norm(x *fp.Element) {
 	var tmp fp.Element
 	x.Square(&z.A1)
-	tmp.Double(x).Double(&tmp).Add(&tmp, x)
+	tmp.Set(x)
+	fp.MulBy5(&tmp)
 	x.Square(&z.A0).Add(x, &tmp)
 }
