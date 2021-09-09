@@ -53,10 +53,10 @@ func (z *E2) Square(x *E2) *E2 {
 // MulByNonResidue multiplies a E2 by (5,1)
 func (z *E2) MulByNonResidue(x *E2) *E2 {
 	c := x.A0
-    a := x.A0
-    b := x.A1
-    fp.MulBy5(&a)
-    fp.MulBy5(&b)
+	a := x.A0
+	b := x.A1
+	fp.MulBy5(&a)
+	fp.MulBy5(&b)
 	z.A0.Sub(&a, &b)
 	z.A1.Add(&b, &c)
 	return z
@@ -73,7 +73,7 @@ func (z *E2) MulByNonResidueInv(x *E2) *E2 {
 		3470226792022368681,
 		368586124710534677,
 		144318007828352746,
-    }
+	}
 	nonResInv.A1 = fp.Element{
 		8169829964025237780,
 		15221973684595632812,
@@ -83,7 +83,7 @@ func (z *E2) MulByNonResidueInv(x *E2) *E2 {
 		274254260964319711,
 	}
 	z.Mul(x, &nonResInv)
-    return z
+	return z
 }
 
 // Inverse sets z to the E2-inverse of x, returns z

@@ -1,3 +1,4 @@
+//go:build !amd64
 // +build !amd64
 
 // Copyright 2020 ConsenSys Software Inc.
@@ -37,6 +38,13 @@ func MulBy5(x *Element) {
 // MulBy13 x *= 13
 func MulBy13(x *Element) {
 	mulByConstant(x, 13)
+}
+
+// Butterfly sets
+// a = a + b
+// b = a - b
+func Butterfly(a, b *Element) {
+	_butterflyGeneric(a, b)
 }
 
 func mul(z, x, y *Element) {

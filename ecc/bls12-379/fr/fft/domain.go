@@ -23,6 +23,12 @@ import (
 	"math/bits"
 	"runtime"
 	"sync"
+
+	"github.com/consensys/gnark-crypto/ecc/bls12-379/fr"
+
+	curve "github.com/consensys/gnark-crypto/ecc/bls12-379"
+
+	"github.com/consensys/gnark-crypto/ecc"
 )
 
 // Domain with a power of 2 cardinality
@@ -78,8 +84,11 @@ func NewDomain(m, depth uint64, precomputeReversedTable bool) *Domain {
 	// generator of the largest 2-adic subgroup
 	var rootOfUnity fr.Element
 
+	rootOfUnity.SetString("5904401470281180001759445948770545500065007382113744306293884414883643005748")
+	const maxOrderRoot uint64 = 51
+
 	domain := &Domain{}
-	x := nextPowerOfTwo(m)
+	x := ecc.NextPowerOfTwo(m)
 	domain.Cardinality = uint64(x)
 	domain.Depth = depth
 	if precomputeReversedTable {
@@ -248,17 +257,6 @@ func precomputeExpTableChunk(w fr.Element, power uint64, table []fr.Element) {
 			table[i].Mul(&table[i-1], &w)
 		}
 	}
-}
-
-func nextPowerOfTwo(n uint64) uint64 {
-	p := uint64(1)
-	if (n & (n - 1)) == 0 {
-		return n
-	}
-	for p < n {
-		p <<= 1
-	}
-	return p
 }
 
 // WriteTo writes a binary representation of the domain (without the precomputed twiddle factors)
