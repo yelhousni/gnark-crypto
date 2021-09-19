@@ -192,7 +192,7 @@ func (z *E2) Sqrt(x *E2) *E2 {
 	var b, c, d, e, f, x0 E2
 	var _b, o fp.Element
 
-	// c must be a non square (works for p=1 mod 12 hence 1 mod 4, only bls377 has such a p currently)
+	// c must be a non square (works for p=1 mod 12 hence 1 mod 4, only bls379 has such a p currently)
 	c.A1.SetOne()
 
 	q := fp.Modulus()
@@ -219,4 +219,38 @@ func (z *E2) Sqrt(x *E2) *E2 {
 	z.Conjugate(&b).MulByElement(z, &_b).Mul(z, &e)
 
 	return z
+}
+
+// BatchInvert returns a new slice with every element inverted.
+// Uses Montgomery batch inversion trick
+func BatchInvert(a []E2) []E2 {
+	res := make([]E2, len(a))
+	if len(a) == 0 {
+		return res
+	}
+
+	zeroes := make([]bool, len(a))
+	var accumulator E2
+	accumulator.SetOne()
+
+	for i := 0; i < len(a); i++ {
+		if a[i].IsZero() {
+			zeroes[i] = true
+			continue
+		}
+		res[i].Set(&accumulator)
+		accumulator.Mul(&accumulator, &a[i])
+	}
+
+	accumulator.Inverse(&accumulator)
+
+	for i := len(a) - 1; i >= 0; i-- {
+		if zeroes[i] {
+			continue
+		}
+		res[i].Mul(&res[i], &accumulator)
+		accumulator.Mul(&accumulator, &a[i])
+	}
+
+	return res
 }

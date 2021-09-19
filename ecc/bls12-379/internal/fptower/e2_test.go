@@ -191,12 +191,12 @@ func TestE2MulMaxed(t *testing.T) {
 	// let's pick a and b, with maxed A0 and A1
 	var a, b E2
 	fpMaxValue := fp.Element{
-		11170052975785672705,
-		2254599926203809792,
-		2730454817854980096,
-		16815565848761751296,
-		597965024123377502,
-		303117862529990261,
+		9586122913090633729,
+		1660523435060625408,
+		2230234197602682880,
+		1883307231910630287,
+		14284016967150029115,
+		121098312706494698,
 	}
 	fpMaxValue[0]--
 
@@ -246,6 +246,20 @@ func TestE2Ops(t *testing.T) {
 		},
 		genA,
 		genB,
+	))
+
+	properties.Property("[BLS12-379] BatchInvert should output the same result as Inverse", prop.ForAll(
+		func(a, b, c *E2) bool {
+
+			batch := BatchInvert([]E2{*a, *b, *c})
+			a.Inverse(a)
+			b.Inverse(b)
+			c.Inverse(c)
+			return a.Equal(&batch[0]) && b.Equal(&batch[1]) && c.Equal(&batch[2])
+		},
+		genA,
+		genA,
+		genA,
 	))
 
 	properties.Property("[BLS12-379] inverse twice should leave an element invariant", prop.ForAll(
