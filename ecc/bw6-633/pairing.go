@@ -16,7 +16,6 @@ package bw6633
 
 import (
 	"errors"
-	// "math/big"
 
 	"github.com/consensys/gnark-crypto/ecc/bw6-633/fp"
 	"github.com/consensys/gnark-crypto/ecc/bw6-633/internal/fptower"
@@ -166,6 +165,145 @@ func FinalExponentiation(z *GT, _z ...*GT) GT {
 
 // MillerLoop Miller loop
 func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
+	// return MillerLoopOptAte(P, Q)
+	// return MillerLoopAte(P, Q)
+	return MillerLoopTate(P, Q)
+}
+
+// MillerLoop Tate
+func MillerLoopTate(P []G1Affine, Q []G2Affine) (GT, error) {
+	// check input size match
+	n := len(P)
+	if n == 0 || n != len(Q) {
+		return GT{}, errors.New("invalid inputs sizes")
+	}
+
+	// filter infinity points
+	p := make([]G1Affine, 0, n)
+	q := make([]G2Affine, 0, n)
+
+	for k := 0; k < n; k++ {
+		if P[k].IsInfinity() || Q[k].IsInfinity() {
+			continue
+		}
+		p = append(p, P[k])
+		q = append(q, Q[k])
+	}
+
+	n = len(p)
+
+	// projective points for P
+	pProj := make([]g1Proj, n)
+	pNeg := make([]G1Affine, n)
+	for k := 0; k < n; k++ {
+		pProj[k].FromAffine(&p[k])
+		pNeg[k].Neg(&p[k])
+	}
+
+	// f_{r,P}(Q)
+	var result GT
+	result.SetOne()
+	var l lineEvaluation
+
+	for i := 313; i >= 0; i-- {
+		result.Square(&result)
+
+		for k := 0; k < n; k++ {
+			pProj[k].DoubleStep(&l)
+			// line evaluation
+			l.r1.Mul(&l.r1, &q[k].X)
+			l.r0.Mul(&l.r0, &q[k].Y)
+			result.MulBy034(&l.r0, &l.r1, &l.r2)
+
+			if loopCounterTate[i] == 1 {
+				pProj[k].AddMixedStep(&l, &p[k])
+				// line evaluation
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r0.Mul(&l.r0, &q[k].Y)
+				result.MulBy034(&l.r0, &l.r1, &l.r2)
+
+			} else if loopCounterTate[i] == -1 {
+				pProj[k].AddMixedStep(&l, &pNeg[k])
+				// line evaluation
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r0.Mul(&l.r0, &q[k].Y)
+				result.MulBy034(&l.r0, &l.r1, &l.r2)
+			}
+        }
+	}
+
+	return result, nil
+}
+
+// MillerLoop ate
+func MillerLoopAte(P []G1Affine, Q []G2Affine) (GT, error) {
+	// check input size match
+	n := len(P)
+	if n == 0 || n != len(Q) {
+		return GT{}, errors.New("invalid inputs sizes")
+	}
+
+	// filter infinity points
+	p := make([]G1Affine, 0, n)
+	q := make([]G2Affine, 0, n)
+
+	for k := 0; k < n; k++ {
+		if P[k].IsInfinity() || Q[k].IsInfinity() {
+			continue
+		}
+		p = append(p, P[k])
+		q = append(q, Q[k])
+	}
+
+	n = len(p)
+
+	// projective points for Q
+	qProj := make([]g2Proj, n)
+	qNeg := make([]G2Affine, n)
+	for k := 0; k < n; k++ {
+		qProj[k].FromAffine(&q[k])
+		qNeg[k].Neg(&q[k])
+	}
+
+	// f_{t-1,Q}(P)
+	var result GT
+	result.SetOne()
+	var l lineEvaluation
+
+	for i := 316; i >= 0; i-- {
+		result.Square(&result)
+
+		for k := 0; k < n; k++ {
+			qProj[k].DoubleStep(&l)
+			// line evaluation
+			l.r1.Mul(&l.r1, &p[k].X)
+			l.r2.Mul(&l.r2, &p[k].Y)
+			result.MulBy014(&l.r0, &l.r1, &l.r2)
+
+			if loopCounterAte[i] == 1 {
+				qProj[k].AddMixedStep(&l, &q[k])
+				// line evaluation
+				l.r1.Mul(&l.r1, &p[k].X)
+				l.r2.Mul(&l.r2, &p[k].Y)
+				result.MulBy014(&l.r0, &l.r1, &l.r2)
+
+			} else if loopCounterAte[i] == -1 {
+				qProj[k].AddMixedStep(&l, &qNeg[k])
+				// line evaluation
+				l.r1.Mul(&l.r1, &p[k].X)
+				l.r2.Mul(&l.r2, &p[k].Y)
+				result.MulBy014(&l.r0, &l.r1, &l.r2)
+			}
+		}
+	}
+
+	result.Conjugate(&result)
+
+	return result, nil
+}
+
+// MillerLoop Miller loop
+func MillerLoopOptAte(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)
 	if n == 0 || n != len(Q) {
@@ -211,14 +349,14 @@ func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
 			l.r2.Mul(&l.r2, &p[k].Y)
 			result1.MulBy014(&l.r0, &l.r1, &l.r2)
 
-			if loopCounter1[i] == 1 {
+			if loopCounterOptAte1[i] == 1 {
 				qProj1[k].AddMixedStep(&l, &q[k])
 				// line evaluation
 				l.r1.Mul(&l.r1, &p[k].X)
 				l.r2.Mul(&l.r2, &p[k].Y)
 				result1.MulBy014(&l.r0, &l.r1, &l.r2)
 
-			} else if loopCounter1[i] == -1 {
+			} else if loopCounterOptAte1[i] == -1 {
 				qProj1[k].AddMixedStep(&l, &qNeg[k])
 				// line evaluation
 				l.r1.Mul(&l.r1, &p[k].X)
@@ -244,14 +382,14 @@ func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
 			l.r2.Mul(&l.r2, &p[k].Y)
 			result2.MulBy014(&l.r0, &l.r1, &l.r2)
 
-			if loopCounter2[i] == 1 {
+			if loopCounterOptAte2[i] == 1 {
 				qProj2[k].AddMixedStep(&l, &q[k])
 				// line evaluation
 				l.r1.Mul(&l.r1, &p[k].X)
 				l.r2.Mul(&l.r2, &p[k].Y)
 				result2.MulBy014(&l.r0, &l.r1, &l.r2)
 
-			} else if loopCounter2[i] == -1 {
+			} else if loopCounterOptAte2[i] == -1 {
 				qProj2[k].AddMixedStep(&l, &qNeg[k])
 				// line evaluation
 				l.r1.Mul(&l.r1, &p[k].X)
@@ -269,6 +407,86 @@ func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
 	return result1, nil
 }
 
+// For Tate pairing
+// DoubleStep doubles a point in Homogenous projective coordinates, and evaluates the line in Miller loop
+// https://eprint.iacr.org/2013/722.pdf (Section 4.3)
+func (p *g1Proj) DoubleStep(evaluations *lineEvaluation) {
+
+	// get some Element from our pool
+	var t0, t1, A, B, C, D, E, EE, F, G, H, I, J, K fp.Element
+	t0.Mul(&p.x, &p.y)
+	A.Mul(&t0, &twoInv)
+	B.Square(&p.y)
+	C.Square(&p.z)
+	D.Double(&C).
+		Add(&D, &C)
+	E.Mul(&D, &bCurveCoeff)
+	F.Double(&E).
+		Add(&F, &E)
+	G.Add(&B, &F)
+	G.Mul(&G, &twoInv)
+	H.Add(&p.y, &p.z).
+		Square(&H)
+	t1.Add(&B, &C)
+	H.Sub(&H, &t1)
+	I.Sub(&E, &B)
+	J.Square(&p.x)
+	EE.Square(&E)
+	K.Double(&EE).
+		Add(&K, &EE)
+
+	// X, Y, Z
+	p.x.Sub(&B, &F).
+		Mul(&p.x, &A)
+	p.y.Square(&G).
+		Sub(&p.y, &K)
+	p.z.Mul(&B, &H)
+
+	// Line evaluation
+	evaluations.r0.Neg(&H)
+	evaluations.r1.Double(&J).
+		Add(&evaluations.r1, &J)
+	evaluations.r2.Set(&I)
+}
+
+// AddMixedStep point addition in Mixed Homogenous projective and Affine coordinates
+// https://eprint.iacr.org/2013/722.pdf (Section 4.3)
+func (p *g1Proj) AddMixedStep(evaluations *lineEvaluation, a *G1Affine) {
+
+	// get some Element from our pool
+	var Y2Z1, X2Z1, O, L, C, D, E, F, G, H, t0, t1, t2, J fp.Element
+	Y2Z1.Mul(&a.Y, &p.z)
+	O.Sub(&p.y, &Y2Z1)
+	X2Z1.Mul(&a.X, &p.z)
+	L.Sub(&p.x, &X2Z1)
+	C.Square(&O)
+	D.Square(&L)
+	E.Mul(&L, &D)
+	F.Mul(&p.z, &C)
+	G.Mul(&p.x, &D)
+	t0.Double(&G)
+	H.Add(&E, &F).
+		Sub(&H, &t0)
+	t1.Mul(&p.y, &E)
+
+	// X, Y, Z
+	p.x.Mul(&L, &H)
+	p.y.Sub(&G, &H).
+		Mul(&p.y, &O).
+		Sub(&p.y, &t1)
+	p.z.Mul(&E, &p.z)
+
+	t2.Mul(&L, &a.Y)
+	J.Mul(&a.X, &O).
+		Sub(&J, &t2)
+
+	// Line evaluation
+	evaluations.r0.Set(&L)
+	evaluations.r1.Neg(&O)
+	evaluations.r2.Set(&J)
+}
+
+// For ate pairing
 // DoubleStep doubles a point in Homogenous projective coordinates, and evaluates the line in Miller loop
 // https://eprint.iacr.org/2013/722.pdf (Section 4.3)
 func (p *g2Proj) DoubleStep(evaluations *lineEvaluation) {

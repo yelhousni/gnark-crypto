@@ -52,9 +52,11 @@ var g2GenAff G2Affine
 var g1Infinity G1Jac
 var g2Infinity G2Jac
 
-// optimal Ate loop counters
-var loopCounter1 [33]int8
-var loopCounter2 [159]int8
+// Miller loop counters
+var loopCounterOptAte1 [33]int8
+var loopCounterOptAte2 [159]int8
+var loopCounterAte [318]int8
+var loopCounterTate [315]int8
 
 // Parameters useful for the GLV scalar multiplication. The third roots define the
 //  endomorphisms phi1 and phi2 for <G1Affine> and <G2Affine>. lambda is such that <r, phi-lambda> lies above
@@ -94,12 +96,20 @@ func init() {
 
 	//binary decomposition of 3218079742, little endian
 	// xGen+1 (negative)
-	T1, _ := new(big.Int).SetString("3218079742", 10)
-	ecc.NafDecomposition(T1, loopCounter1[:])
+	T, _ := new(big.Int).SetString("3218079742", 10)
+	ecc.NafDecomposition(T, loopCounterOptAte1[:])
 
 	// xGen^5-xGen^4-xGen (negative)
-	T2, _ := new(big.Int).SetString("345131030376204096837580131803633448876874137601", 10)
-	ecc.NafDecomposition(T2, loopCounter2[:])
+	T, _ = new(big.Int).SetString("345131030376204096837580131803633448876874137601", 10)
+	ecc.NafDecomposition(T, loopCounterOptAte2[:])
+
+	// t-1 (negative)
+	T, _ = new(big.Int).SetString("277935998929579625671825989449399439321787623254013586709576730929548811253404109750660426104840", 10)
+	ecc.NafDecomposition(T, loopCounterAte[:])
+
+	// r
+    _r := fr.Modulus()
+	ecc.NafDecomposition(_r, loopCounterTate[:])
 
 	g1Infinity.X.SetOne()
 	g1Infinity.Y.SetOne()
@@ -109,7 +119,6 @@ func init() {
 	thirdRootOneG1.SetString("4098895725012429242072311240482566844345873033931481129362557724405008256668293241245050359832461015092695507587185678086043587575438449040313411246717257958467499181450742260777082884928318") // (45-10*x+151*x^2-187*x^3+171*x^4-49*x^5-110*x^6+430*x^7-696*x^8+702*x^9-528*x^10+201*x^11+144*x^12-274*x^13+181*x^14-34*x^15-63*x^16+92*x^17-56*x^18+13*x^19)/15
 	thirdRootOneG2.Square(&thirdRootOneG1)
 	lambdaGLV.SetString("39705142672498995661671850106945620852186608752525090699191017895721506694646055668218723303426", 10) // 1-x+2*x^2-2*x^3+3*x^5-4*x^6+4*x^7-3*x^8+x^9
-	_r := fr.Modulus()
 	ecc.PrecomputeLattice(_r, &lambdaGLV, &glvBasis)
 
 	xGen.SetString("3218079743", 10) // negative
