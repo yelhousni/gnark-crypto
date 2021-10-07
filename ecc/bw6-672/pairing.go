@@ -206,7 +206,7 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 	BatchProjectiveToAffineG1(pProj01, p01)
 
 	// f_{a0+lambda*a1,P}(Q)
-	var result GT
+	var result, ss GT
 	result.SetOne()
 	var l, l0 lineEvaluation
 
@@ -225,21 +225,21 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 				pProj1[k].AddMixedStep(&l, &p01[k])
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r2.Mul(&l.r2, &q[k].Y)
-                result.MulBy014(&l.r0, &l.r1, &l.r2).
-					MulBy014(&l01[k].r0, &l01[k].r1, &l01[k].r2).
-					MulBy014(&l0.r0, &l0.r1, &l0.r2)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
+				result.MulBy014(&l0.r0, &l0.r1, &l0.r2).
+					Mul(&result, &ss)
 			} else if loopCounterOptTate0[i] == 1 && loopCounterOptTate1[i] == 0 {
 				pProj1[k].AddMixedStep(&l, &p0[k])
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r2.Mul(&l.r2, &q[k].Y)
-                result.MulBy014(&l.r0, &l.r1, &l.r2).
-					MulBy014(&l0.r0, &l0.r1, &l0.r2)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
 			} else {
 				pProj1[k].AddMixedStep(&l, &p1[k])
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r2.Mul(&l.r2, &q[k].Y)
-                result.MulBy014(&l.r0, &l.r1, &l.r2).
-					MulBy014(&l0.r0, &l0.r1, &l0.r2)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
 			}
 		}
 	}

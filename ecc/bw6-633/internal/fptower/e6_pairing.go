@@ -94,13 +94,13 @@ func (z *E6) Mul034By034(d0, d3, d4, c0, c3, c4 *fp.Element) *E6 {
 		Sub(&x34, &x3).
 		Sub(&x34, &x4)
 
-	z.B0.A0.SetZero()
 	z.B0.A0.MulByNonResidue(&x4).
 		Add(&z.B0.A0, &x0)
 	z.B0.A1.Set(&x3)
 	z.B0.A2.Set(&x34)
 	z.B1.A0.Set(&x03)
 	z.B1.A1.Set(&x04)
+	z.B1.A2.SetZero()
 
 	return z
 }
