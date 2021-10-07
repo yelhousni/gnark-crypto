@@ -167,7 +167,8 @@ func FinalExponentiation(z *GT, _z ...*GT) GT {
 func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
 	// return MillerLoopOptAte(P, Q)
 	// return MillerLoopAte(P, Q)
-	return MillerLoopTate(P, Q)
+	// return MillerLoopTate(P, Q)
+	return MillerLoopOptTate(P, Q)
 }
 
 // MillerLoop Tate
@@ -229,7 +230,90 @@ func MillerLoopTate(P []G1Affine, Q []G2Affine) (GT, error) {
 				l.r0.Mul(&l.r0, &q[k].Y)
 				result.MulBy034(&l.r0, &l.r1, &l.r2)
 			}
-        }
+		}
+	}
+
+	return result, nil
+}
+
+// MillerLoop Optimal Tate (or twisted ate or Eta revisited)
+// Alg.2 in ...
+func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
+	// check input size match
+	n := len(P)
+	if n == 0 || n != len(Q) {
+		return GT{}, errors.New("invalid inputs sizes")
+	}
+
+	// filter infinity points
+	p0 := make([]G1Affine, 0, n)
+	q := make([]G2Affine, 0, n)
+
+	for k := 0; k < n; k++ {
+		if P[k].IsInfinity() || Q[k].IsInfinity() {
+			continue
+		}
+		p0 = append(p0, P[k])
+		q = append(q, Q[k])
+	}
+
+	n = len(q)
+
+	// precomputations
+	pProj1 := make([]g1Proj, n)
+	p1 := make([]G1Affine, n)
+	p01 := make([]G1Affine, n)
+	pProj01 := make([]g1Proj, n)
+	l01 := make([]lineEvaluation, n)
+	for k := 0; k < n; k++ {
+		p0[k].Neg(&p0[k])
+		p1[k].phi(&p0[k])
+		pProj1[k].FromAffine(&p1[k])
+		// l_{p0,p1}(q)
+		pProj01[k].Set(&pProj1[k])
+		pProj01[k].AddMixedStep(&l01[k], &p0[k])
+		l01[k].r1.Mul(&l01[k].r1, &q[k].X)
+		l01[k].r0.Mul(&l01[k].r0, &q[k].Y)
+		p01[k].FromProjective(&pProj01[k])
+	}
+
+	// f_{a0+lambda*a1,P}(Q)
+	var result GT
+	result.SetOne()
+	var l, lt lineEvaluation
+
+	for i := 156; i >= 0; i-- {
+		result.Square(&result)
+
+		for k := 0; k < n; k++ {
+			pProj1[k].DoubleStep(&lt)
+			// line evaluation
+			lt.r1.Mul(&lt.r1, &q[k].X)
+			lt.r0.Mul(&lt.r0, &q[k].Y)
+
+			if loopCounterOptTate0[i] == 0 && loopCounterOptTate1[i] == 0 {
+				result.MulBy034(&lt.r0, &lt.r1, &lt.r2)
+			} else if loopCounterOptTate0[i] == 1 && loopCounterOptTate1[i] == 1 {
+				pProj1[k].AddMixedStep(&l, &p01[k])
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r0.Mul(&l.r0, &q[k].Y)
+				result.MulBy034(&lt.r0, &lt.r1, &lt.r2).
+					MulBy034(&l.r0, &l.r1, &l.r2).
+					MulBy034(&l01[k].r0, &l01[k].r1, &l01[k].r2)
+			} else if loopCounterOptTate0[i] == 1 && loopCounterOptTate1[i] == 0 {
+				pProj1[k].AddMixedStep(&l, &p0[k])
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r0.Mul(&l.r0, &q[k].Y)
+				result.MulBy034(&lt.r0, &lt.r1, &lt.r2).
+					MulBy034(&l.r0, &l.r1, &l.r2)
+			} else {
+				pProj1[k].AddMixedStep(&l, &p1[k])
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r0.Mul(&l.r0, &q[k].Y)
+				result.MulBy034(&lt.r0, &lt.r1, &lt.r2).
+					MulBy034(&l.r0, &l.r1, &l.r2)
+			}
+		}
 	}
 
 	return result, nil

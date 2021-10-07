@@ -101,6 +101,24 @@ func (p *G1Affine) Neg(a *G1Affine) *G1Affine {
 	return p
 }
 
+// FromProjective rescale a point in Projective coord in z=1 plane
+func (p *G1Affine) FromProjective(p1 *g1Proj) *G1Affine {
+
+	var a fp.Element
+
+	if p1.z.IsZero() {
+		p.X.SetZero()
+		p.Y.SetZero()
+		return p
+	}
+
+	a.Inverse(&p1.z)
+	p.X.Mul(&p1.x, &a)
+	p.Y.Mul(&p1.y, &a)
+
+	return p
+}
+
 // FromJacobian rescale a point in Jacobian coord in z=1 plane
 func (p *G1Affine) FromJacobian(p1 *G1Jac) *G1Affine {
 
@@ -417,6 +435,14 @@ func (p *G1Jac) mulWindowed(a *G1Jac, s *big.Int) *G1Jac {
 
 	return p
 
+}
+
+// phi assigns p to phi(a) where phi: (x,y)->(ux,y), and returns p
+// in affine coordinates
+func (p *G1Affine) phi(a *G1Affine) *G1Affine {
+	p.Set(a)
+	p.X.Mul(&p.X, &thirdRootOneG1)
+	return p
 }
 
 // phi assigns p to phi(a) where phi: (x,y)->(ux,y), and returns p
