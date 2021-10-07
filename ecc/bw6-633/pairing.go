@@ -274,8 +274,8 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 		pProj01[k].AddMixedStep(&l01[k], &p0[k])
 		l01[k].r1.Mul(&l01[k].r1, &q[k].X)
 		l01[k].r0.Mul(&l01[k].r0, &q[k].Y)
-		p01[k].FromProjective(&pProj01[k])
 	}
+	BatchProjectiveToAffineG1(pProj01, p01)
 
 	// f_{a0+lambda*a1,P}(Q)
 	var result GT
