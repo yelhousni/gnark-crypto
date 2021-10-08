@@ -191,20 +191,31 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 	pProj1 := make([]g1Proj, n)
 	p1 := make([]G1Affine, n)
 	p01 := make([]G1Affine, n)
-	pProj01 := make([]g1Proj, n)
+	p10 := make([]G1Affine, n)
+	pProj01 := make([]g1Proj, n) // P0+P1
+	pProj10 := make([]g1Proj, n) // P0-P1
 	l01 := make([]lineEvaluation, n)
+	l10 := make([]lineEvaluation, n)
 	for k := 0; k < n; k++ {
 		p1[k].Y.Set(&p0[k].Y)
 		p1[k].X.Mul(&p0[k].X, &thirdRootOneG2)
 		p0[k].Neg(&p0[k])
 		pProj1[k].FromAffine(&p1[k])
+
 		// l_{p0,p1}(q)
 		pProj01[k].Set(&pProj1[k])
 		pProj01[k].AddMixedStep(&l01[k], &p0[k])
 		l01[k].r1.Mul(&l01[k].r1, &q[k].X)
 		l01[k].r2.Mul(&l01[k].r2, &q[k].Y)
+
+        // l_{p0,-p1}(q)
+		pProj10[k].Neg(&pProj1[k])
+		pProj10[k].AddMixedStep(&l10[k], &p0[k])
+		l10[k].r1.Mul(&l10[k].r1, &q[k].X)
+		l10[k].r2.Mul(&l10[k].r2, &q[k].Y)
 	}
 	BatchProjectiveToAffineG1(pProj01, p01)
+	BatchProjectiveToAffineG1(pProj10, p10)
 
 	// f_{a0+lambda*a1,P}(Q)
 	var result, ss GT
@@ -213,23 +224,19 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 
 	var j int8
 
-    // i = 156
+    // i = 157
     for k := 0; k < n; k++ {
         pProj1[k].DoubleStep(&l0)
         l0.r1.Mul(&l0.r1, &q[k].X)
         l0.r2.Mul(&l0.r2, &q[k].Y)
-
-        pProj1[k].AddMixedStep(&l, &p0[k])
-        l.r1.Mul(&l.r1, &q[k].X)
-        l.r2.Mul(&l.r2, &q[k].Y)
-        ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
-        result.Mul(&result, &ss)
+        result.MulBy014(&l0.r0, &l0.r1, &l0.r2)
     }
 
-	for i := 155; i >= 0; i-- {
+    var tmp G1Affine
+	for i := 156; i >= 0; i-- {
 		result.Square(&result)
 
-		j = loopCounterOptTate1[i]<<1 + loopCounterOptTate0[i]
+		j = loopCounterOptTate1[i]*3 + loopCounterOptTate0[i]
 
 		for k := 0; k < n; k++ {
 			pProj1[k].DoubleStep(&l0)
@@ -238,27 +245,67 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 			l0.r2.Mul(&l0.r2, &q[k].Y)
 
 			switch j {
-			case 0:
-				result.MulBy014(&l0.r0, &l0.r1, &l0.r2)
-            case 1:
-				pProj1[k].AddMixedStep(&l, &p0[k])
-				l.r1.Mul(&l.r1, &q[k].X)
-				l.r2.Mul(&l.r2, &q[k].Y)
-				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
-				result.Mul(&result, &ss)
-            case 2:
-				pProj1[k].AddMixedStep(&l, &p1[k])
-				l.r1.Mul(&l.r1, &q[k].X)
-				l.r2.Mul(&l.r2, &q[k].Y)
-				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
-				result.Mul(&result, &ss)
-			case 3:
-				pProj1[k].AddMixedStep(&l, &p01[k])
+            case -4:
+                tmp.Neg(&p01[k])
+                pProj1[k].AddMixedStep(&l, &tmp)
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r2.Mul(&l.r2, &q[k].Y)
 				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
 				result.MulBy014(&l0.r0, &l0.r1, &l0.r2).
 					Mul(&result, &ss)
+            case -3:
+                tmp.Neg(&p1[k])
+				pProj1[k].AddMixedStep(&l, &tmp)
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r2.Mul(&l.r2, &q[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
+            case -2:
+                pProj1[k].AddMixedStep(&l, &p10[k])
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r2.Mul(&l.r2, &q[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
+				result.MulBy014(&l0.r0, &l0.r1, &l0.r2).
+					Mul(&result, &ss)
+            case -1:
+                tmp.Neg(&p0[k])
+				pProj1[k].AddMixedStep(&l, &tmp)
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r2.Mul(&l.r2, &q[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
+			case 0:
+				result.MulBy014(&l0.r0, &l0.r1, &l0.r2)
+            case 1:
+                pProj1[k].AddMixedStep(&l, &p0[k])
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r2.Mul(&l.r2, &q[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
+            case 2:
+                tmp.Neg(&p10[k])
+                pProj1[k].AddMixedStep(&l, &tmp)
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r2.Mul(&l.r2, &q[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
+				result.MulBy014(&l0.r0, &l0.r1, &l0.r2).
+					Mul(&result, &ss)
+            case 3:
+                pProj1[k].AddMixedStep(&l, &p1[k])
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r2.Mul(&l.r2, &q[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
+            case 4:
+                pProj1[k].AddMixedStep(&l, &p01[k])
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r2.Mul(&l.r2, &q[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
+				result.MulBy014(&l0.r0, &l0.r1, &l0.r2).
+					Mul(&result, &ss)
+			default:
+				return GT{}, errors.New("invalid loopCounter")
+
 			}
 		}
 	}
