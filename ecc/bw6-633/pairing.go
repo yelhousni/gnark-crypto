@@ -263,20 +263,31 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 	pProj0 := make([]g1Proj, n)
 	p1 := make([]G1Affine, n)
 	p01 := make([]G1Affine, n)
-	pProj01 := make([]g1Proj, n)
+	p10 := make([]G1Affine, n)
+	pProj01 := make([]g1Proj, n) // P0+P1
+	pProj10 := make([]g1Proj, n) // P0-P1
 	l01 := make([]lineEvaluation, n)
+	l10 := make([]lineEvaluation, n)
 	for k := 0; k < n; k++ {
 		p1[k].Y.Set(&p0[k].Y)
 		p1[k].X.Mul(&p0[k].X, &thirdRootOneG1)
 		p0[k].Neg(&p0[k])
 		pProj0[k].FromAffine(&p0[k])
+
 		// l_{p0,p1}(q)
 		pProj01[k].Set(&pProj0[k])
 		pProj01[k].AddMixedStep(&l01[k], &p1[k])
 		l01[k].r1.Mul(&l01[k].r1, &q[k].X)
 		l01[k].r0.Mul(&l01[k].r0, &q[k].Y)
+
+		// l_{p0,-p1}(q)
+		pProj10[k].Neg(&pProj0[k])
+		pProj10[k].AddMixedStep(&l10[k], &p1[k])
+		l10[k].r1.Mul(&l10[k].r1, &q[k].X)
+		l10[k].r0.Mul(&l10[k].r0, &q[k].Y)
 	}
 	BatchProjectiveToAffineG1(pProj01, p01)
+	BatchProjectiveToAffineG1(pProj10, p10)
 
 	// f_{a0+lambda*a1,P}(Q)
 	var result, ss GT
@@ -285,24 +296,19 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 
 	var j int8
 
-	// i = 156
+	// i = 157
 	for k := 0; k < n; k++ {
 		pProj0[k].DoubleStep(&l0)
 		l0.r1.Mul(&l0.r1, &q[k].X)
 		l0.r0.Mul(&l0.r0, &q[k].Y)
-
-		pProj0[k].AddMixedStep(&l, &p0[k])
-		l.r1.Mul(&l.r1, &q[k].X)
-		l.r0.Mul(&l.r0, &q[k].Y)
-
-		ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
-		result.Mul(&result, &ss)
+        result.MulBy034(&l0.r0, &l0.r1, &l0.r2)
 	}
 
-	for i := 155; i >= 0; i-- {
+    var tmp G1Affine
+	for i := 156; i >= 0; i-- {
 		result.Square(&result)
 
-		j = loopCounterOptTate1[i]<<1 + loopCounterOptTate0[i]
+		j = loopCounterOptTate1[i]*3 + loopCounterOptTate0[i]
 
 		for k := 0; k < n; k++ {
 			pProj0[k].DoubleStep(&l0)
@@ -310,22 +316,59 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 			l0.r0.Mul(&l0.r0, &q[k].Y)
 
 			switch j {
+            case -4:
+                tmp.Neg(&p01[k])
+                pProj0[k].AddMixedStep(&l, &tmp)
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r0.Mul(&l.r0, &q[k].Y)
+				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
+				result.MulBy034(&l0.r0, &l0.r1, &l0.r2).
+					Mul(&result, &ss)
+            case -3:
+                tmp.Neg(&p1[k])
+				pProj0[k].AddMixedStep(&l, &tmp)
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r0.Mul(&l.r0, &q[k].Y)
+				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
+            case -2:
+                pProj0[k].AddMixedStep(&l, &p10[k])
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r0.Mul(&l.r0, &q[k].Y)
+				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
+				result.MulBy034(&l0.r0, &l0.r1, &l0.r2).
+					Mul(&result, &ss)
+            case -1:
+                tmp.Neg(&p0[k])
+				pProj0[k].AddMixedStep(&l, &tmp)
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r0.Mul(&l.r0, &q[k].Y)
+				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
 			case 0:
 				result.MulBy034(&l0.r0, &l0.r1, &l0.r2)
-			case 1:
-				pProj0[k].AddMixedStep(&l, &p0[k])
+            case 1:
+                pProj0[k].AddMixedStep(&l, &p0[k])
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r0.Mul(&l.r0, &q[k].Y)
 				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
 				result.Mul(&result, &ss)
-			case 2:
-				pProj0[k].AddMixedStep(&l, &p1[k])
+            case 2:
+                tmp.Neg(&p10[k])
+                pProj0[k].AddMixedStep(&l, &tmp)
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r0.Mul(&l.r0, &q[k].Y)
+				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
+				result.MulBy034(&l0.r0, &l0.r1, &l0.r2).
+					Mul(&result, &ss)
+            case 3:
+                pProj0[k].AddMixedStep(&l, &p1[k])
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r0.Mul(&l.r0, &q[k].Y)
 				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
 				result.Mul(&result, &ss)
-			case 3:
-				pProj0[k].AddMixedStep(&l, &p01[k])
+            case 4:
+                pProj0[k].AddMixedStep(&l, &p01[k])
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r0.Mul(&l.r0, &q[k].Y)
 				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
