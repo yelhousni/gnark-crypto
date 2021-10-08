@@ -420,14 +420,6 @@ func (p *G1Jac) mulWindowed(a *G1Jac, s *big.Int) *G1Jac {
 }
 
 // phi assigns p to phi(a) where phi: (x,y)->(ux,y), and returns p
-// in affine coordinates
-func (p *G1Affine) phi(a *G1Affine) *G1Affine {
-	p.Set(a)
-	p.X.Mul(&p.X, &thirdRootOneG1)
-	return p
-}
-
-// phi assigns p to phi(a) where phi: (x,y)->(ux,y), and returns p
 func (p *G1Jac) phi(a *G1Jac) *G1Jac {
 	p.Set(a)
 	p.X.Mul(&p.X, &thirdRootOneG1)

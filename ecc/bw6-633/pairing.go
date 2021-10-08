@@ -266,7 +266,8 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 	pProj01 := make([]g1Proj, n)
 	l01 := make([]lineEvaluation, n)
 	for k := 0; k < n; k++ {
-		p1[k].phi(&p0[k])
+		p1[k].Y.Set(&p0[k].Y)
+		p1[k].X.Mul(&p0[k].X, &thirdRootOneG1)
 		p0[k].Neg(&p0[k])
 		pProj0[k].FromAffine(&p0[k])
 		// l_{p0,p1}(q)
@@ -282,36 +283,56 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 	result.SetOne()
 	var l, l0 lineEvaluation
 
-	for i := 156; i >= 0; i-- {
+	var j int8
+
+	// i = 156
+	for k := 0; k < n; k++ {
+		pProj0[k].DoubleStep(&l0)
+		l0.r1.Mul(&l0.r1, &q[k].X)
+		l0.r0.Mul(&l0.r0, &q[k].Y)
+
+		pProj0[k].AddMixedStep(&l, &p0[k])
+		l.r1.Mul(&l.r1, &q[k].X)
+		l.r0.Mul(&l.r0, &q[k].Y)
+
+		ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+		result.Mul(&result, &ss)
+	}
+
+	for i := 155; i >= 0; i-- {
 		result.Square(&result)
+
+		j = loopCounterOptTate1[i]<<1 + loopCounterOptTate0[i]
 
 		for k := 0; k < n; k++ {
 			pProj0[k].DoubleStep(&l0)
-			// line evaluation
 			l0.r1.Mul(&l0.r1, &q[k].X)
 			l0.r0.Mul(&l0.r0, &q[k].Y)
 
-			if loopCounterOptTate0[i] == 0 && loopCounterOptTate1[i] == 0 {
+			switch j {
+			case 0:
 				result.MulBy034(&l0.r0, &l0.r1, &l0.r2)
-			} else if loopCounterOptTate0[i] == 1 && loopCounterOptTate1[i] == 1 {
+			case 1:
+				pProj0[k].AddMixedStep(&l, &p0[k])
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r0.Mul(&l.r0, &q[k].Y)
+				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
+			case 2:
+				pProj0[k].AddMixedStep(&l, &p1[k])
+				l.r1.Mul(&l.r1, &q[k].X)
+				l.r0.Mul(&l.r0, &q[k].Y)
+				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
+			case 3:
 				pProj0[k].AddMixedStep(&l, &p01[k])
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r0.Mul(&l.r0, &q[k].Y)
 				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
 				result.MulBy034(&l0.r0, &l0.r1, &l0.r2).
 					Mul(&result, &ss)
-			} else if loopCounterOptTate0[i] == 1 && loopCounterOptTate1[i] == 0 {
-				pProj0[k].AddMixedStep(&l, &p0[k])
-				l.r1.Mul(&l.r1, &q[k].X)
-				l.r0.Mul(&l.r0, &q[k].Y)
-				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
-				result.Mul(&result, &ss)
-			} else {
-				pProj0[k].AddMixedStep(&l, &p1[k])
-				l.r1.Mul(&l.r1, &q[k].X)
-				l.r0.Mul(&l.r0, &q[k].Y)
-				ss.Mul034By034(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
-				result.Mul(&result, &ss)
+			default:
+				return GT{}, errors.New("invalid loopCounter")
 			}
 		}
 	}
