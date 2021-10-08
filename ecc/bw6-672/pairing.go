@@ -208,7 +208,7 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 		l01[k].r1.Mul(&l01[k].r1, &q[k].X)
 		l01[k].r2.Mul(&l01[k].r2, &q[k].Y)
 
-        // l_{p0,-p1}(q)
+		// l_{p0,-p1}(q)
 		pProj10[k].Neg(&pProj1[k])
 		pProj10[k].AddMixedStep(&l10[k], &p0[k])
 		l10[k].r1.Mul(&l10[k].r1, &q[k].X)
@@ -224,15 +224,15 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 
 	var j int8
 
-    // i = 157
-    for k := 0; k < n; k++ {
-        pProj1[k].DoubleStep(&l0)
-        l0.r1.Mul(&l0.r1, &q[k].X)
-        l0.r2.Mul(&l0.r2, &q[k].Y)
-        result.MulBy014(&l0.r0, &l0.r1, &l0.r2)
-    }
+	// i = 157
+	for k := 0; k < n; k++ {
+		pProj1[k].DoubleStep(&l0)
+		l0.r1.Mul(&l0.r1, &q[k].X)
+		l0.r2.Mul(&l0.r2, &q[k].Y)
+		result.MulBy014(&l0.r0, &l0.r1, &l0.r2)
+	}
 
-    var tmp G1Affine
+	var tmp G1Affine
 	for i := 156; i >= 0; i-- {
 		result.Square(&result)
 
@@ -245,30 +245,30 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 			l0.r2.Mul(&l0.r2, &q[k].Y)
 
 			switch j {
-            case -4:
-                tmp.Neg(&p01[k])
-                pProj1[k].AddMixedStep(&l, &tmp)
+			case -4:
+				tmp.Neg(&p01[k])
+				pProj1[k].AddMixedStep(&l, &tmp)
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r2.Mul(&l.r2, &q[k].Y)
 				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
 				result.MulBy014(&l0.r0, &l0.r1, &l0.r2).
 					Mul(&result, &ss)
-            case -3:
-                tmp.Neg(&p1[k])
+			case -3:
+				tmp.Neg(&p1[k])
 				pProj1[k].AddMixedStep(&l, &tmp)
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r2.Mul(&l.r2, &q[k].Y)
 				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
 				result.Mul(&result, &ss)
-            case -2:
-                pProj1[k].AddMixedStep(&l, &p10[k])
+			case -2:
+				pProj1[k].AddMixedStep(&l, &p10[k])
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r2.Mul(&l.r2, &q[k].Y)
 				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
 				result.MulBy014(&l0.r0, &l0.r1, &l0.r2).
 					Mul(&result, &ss)
-            case -1:
-                tmp.Neg(&p0[k])
+			case -1:
+				tmp.Neg(&p0[k])
 				pProj1[k].AddMixedStep(&l, &tmp)
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r2.Mul(&l.r2, &q[k].Y)
@@ -276,28 +276,28 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 				result.Mul(&result, &ss)
 			case 0:
 				result.MulBy014(&l0.r0, &l0.r1, &l0.r2)
-            case 1:
-                pProj1[k].AddMixedStep(&l, &p0[k])
+			case 1:
+				pProj1[k].AddMixedStep(&l, &p0[k])
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r2.Mul(&l.r2, &q[k].Y)
 				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
 				result.Mul(&result, &ss)
-            case 2:
-                tmp.Neg(&p10[k])
-                pProj1[k].AddMixedStep(&l, &tmp)
+			case 2:
+				tmp.Neg(&p10[k])
+				pProj1[k].AddMixedStep(&l, &tmp)
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r2.Mul(&l.r2, &q[k].Y)
 				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
 				result.MulBy014(&l0.r0, &l0.r1, &l0.r2).
 					Mul(&result, &ss)
-            case 3:
-                pProj1[k].AddMixedStep(&l, &p1[k])
+			case 3:
+				pProj1[k].AddMixedStep(&l, &p1[k])
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r2.Mul(&l.r2, &q[k].Y)
 				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
 				result.Mul(&result, &ss)
-            case 4:
-                pProj1[k].AddMixedStep(&l, &p01[k])
+			case 4:
+				pProj1[k].AddMixedStep(&l, &p01[k])
 				l.r1.Mul(&l.r1, &q[k].X)
 				l.r2.Mul(&l.r2, &q[k].Y)
 				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
