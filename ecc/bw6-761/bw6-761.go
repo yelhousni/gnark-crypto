@@ -58,8 +58,10 @@ var g2Infinity G2Jac
 // optimal Ate loop counters
 // Miller loop 1: f(P), div(f) = (x+1)(Q)-([x+1]Q)-x(O)
 // Miller loop 2: f(P), div(f) = (x**3-x**2-x)(Q) -([x**3-x**2-x]Q)-(x**3-x**2-x-1)(O)
-var loopCounter1 [64]int8
-var loopCounter2 [190]int8
+var loopCounterOptAte0 [64]int8
+var loopCounterOptAte1 [190]int8
+var loopCounterOptTate0 [190]int8
+var loopCounterOptTate1 [190]int8
 
 // Parameters useful for the GLV scalar multiplication. The third roots define the
 //  endomorphisms phi1 and phi2 for <G1Affine> and <G2Affine>. lambda is such that <r, phi-lambda> lies above
@@ -97,11 +99,18 @@ func init() {
 
 	//binary decomposition of 9586122913090633730, little endian
 	// xGen+1
-	loopCounter1 = [64]int8{0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1}
+	loopCounterOptAte0 = [64]int8{0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1}
 
 	// xGen^3-xGen^2-xGen
 	T, _ := new(big.Int).SetString("880904806456922042166256752416502360955572640081583800319", 10)
-	ecc.NafDecomposition(T, loopCounter2[:])
+	ecc.NafDecomposition(T, loopCounterOptAte1[:])
+
+	// xGen^3-xGen^2+1
+	T, _ = new(big.Int).SetString("880904806456922042166256752416502360965158762994674434049", 10)
+	ecc.NafDecomposition(T, loopCounterOptTate0[:])
+
+	// xGen+1
+	loopCounterOptTate1 = [190]int8{0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -1, 0, 1, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
 	g1Infinity.X.SetOne()
 	g1Infinity.Y.SetOne()
