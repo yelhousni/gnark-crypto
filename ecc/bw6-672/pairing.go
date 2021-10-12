@@ -165,7 +165,7 @@ func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
 }
 
 // MillerLoop Optimal Tate (or twisted ate or Eta revisited)
-// Alg.2 in ...
+// Alg.2 in https://eprint.iacr.org/2021/1359.pdf
 func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)

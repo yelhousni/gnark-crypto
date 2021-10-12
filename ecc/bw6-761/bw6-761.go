@@ -58,8 +58,11 @@ var g2Infinity G2Jac
 // optimal Ate loop counters
 // Miller loop 1: f(P), div(f) = (x+1)(Q)-([x+1]Q)-x(O)
 // Miller loop 2: f(P), div(f) = (x**3-x**2-x)(Q) -([x**3-x**2-x]Q)-(x**3-x**2-x-1)(O)
+var loopCounterOptAteNaive0 [64]int8
+var loopCounterOptAteNaive1 [190]int8
 var loopCounterOptAte0 [64]int8
-var loopCounterOptAte1 [190]int8
+var loopCounterOptAte1 [127]int8
+var loopCounterOptAte1Bin [127]int8
 var loopCounterOptTate0 [190]int8
 var loopCounterOptTate1 [190]int8
 
@@ -99,11 +102,22 @@ func init() {
 
 	//binary decomposition of 9586122913090633730, little endian
 	// xGen+1
-	loopCounterOptAte0 = [64]int8{0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1}
+	loopCounterOptAteNaive0 = [64]int8{0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1}
 
 	// xGen^3-xGen^2-xGen
 	T, _ := new(big.Int).SetString("880904806456922042166256752416502360955572640081583800319", 10)
+	ecc.NafDecomposition(T, loopCounterOptAteNaive1[:])
+
+	//binary decomposition of 9586122913090633729, little endian
+	// xGen
+	loopCounterOptAte0 = [64]int8{1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1}
+
+	// xGen^2-xGen-1
+	T, _ = new(big.Int).SetString("91893752504881257691937156713741811711", 10)
 	ecc.NafDecomposition(T, loopCounterOptAte1[:])
+
+	// xGen^2-xGen-1 (binary)
+	loopCounterOptAte1Bin = [127]int8{1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1}
 
 	// xGen^3-xGen^2+1
 	T, _ = new(big.Int).SetString("880904806456922042166256752416502360965158762994674434049", 10)
