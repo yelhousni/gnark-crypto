@@ -144,7 +144,8 @@ func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
     // return MillerLoopOptAteBinary(P,Q)
 	// return MillerLoopOptAte2NAF(P, Q)
 	// return MillerLoopOptTate(P, Q)
-    return MillerLoopOptAteNewBinary(P,Q)
+    // return MillerLoopOptAteNewBinary(P,Q)
+    return MillerLoopOptAteNew2NAF(P,Q)
 }
 
 // MillerLoop Optimal Tate (or twisted ate or Eta revisited)
@@ -292,6 +293,135 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 
 	return result, nil
 }
+
+// MillerLoop Optimal Ate New (2-NAF)
+// f_{u+1,Q}(P) * (f_{u+1})^q_{u^2-2u-1,[u+1]Q}(P) * l^q_{[(u+1)(u^2-2u+1)]Q,-Q}(P)
+func MillerLoopOptAteNew2NAF(P []G1Affine, Q []G2Affine) (GT, error) {
+	// check input size match
+	n := len(P)
+	if n == 0 || n != len(Q) {
+		return GT{}, errors.New("invalid inputs sizes")
+	}
+
+	// filter infinity points
+	p := make([]G1Affine, 0, n)
+	q := make([]G2Affine, 0, n)
+
+	for k := 0; k < n; k++ {
+		if P[k].IsInfinity() || Q[k].IsInfinity() {
+			continue
+		}
+		p = append(p, P[k])
+		q = append(q, Q[k])
+	}
+
+	n = len(p)
+
+	// projective points for Q
+	qProj1 := make([]g2Proj, n)
+	qProj2 := make([]g2Proj, n)
+	for k := 0; k < n; k++ {
+		qProj1[k].FromAffine(&q[k])
+		qProj2[k].FromAffine(&q[k])
+	}
+
+	// f_{u+1,Q}(P)
+	var result1 GT
+	result1.SetOne()
+	var l lineEvaluation
+
+	// i == 62
+	for k := 0; k < n; k++ {
+		qProj1[k].DoubleStep(&l)
+		// line eval
+		l.r1.Mul(&l.r1, &p[k].X)
+		l.r2.Mul(&l.r2, &p[k].Y)
+		result1.MulBy014(&l.r0, &l.r1, &l.r2)
+	}
+
+	for i := 61; i >= 0; i-- {
+		result1.Square(&result1)
+
+		for k := 0; k < n; k++ {
+			qProj1[k].DoubleStep(&l)
+			l.r1.Mul(&l.r1, &p[k].X)
+			l.r2.Mul(&l.r2, &p[k].Y)
+			result1.MulBy014(&l.r0, &l.r1, &l.r2)
+		}
+
+		if loopCounterOptAteNaive0[i] == 0 {
+			continue
+		}
+
+		for k := 0; k < n; k++ {
+			qProj1[k].AddMixedStep(&l, &q[k])
+			l.r1.Mul(&l.r1, &p[k].X)
+			l.r2.Mul(&l.r2, &p[k].Y)
+			result1.MulBy014(&l.r0, &l.r1, &l.r2)
+		}
+	}
+
+    var result1Old, result1Inv GT
+    result1Old.Set(&result1)
+    result1Inv.Inverse(&result1)
+
+    // qProj1 = (u+1)*Q (projective) et result1 = f_{u+1,Q}(P)
+
+	uq := make([]G2Affine, n)
+    BatchProjectiveToAffineG2(qProj1, uq)
+
+    // uq = (u+1)*Q (affine)
+
+    // f_{u^2-2u+1,uQ}(P)
+	var result2 GT
+	result2.Set(&result1Old)
+
+    var tmp G2Affine
+	for i := 125; i >= 0; i-- {
+		result2.Square(&result2)
+
+		for k := 0; k < n; k++ {
+			qProj1[k].DoubleStep(&l)
+			l.r1.Mul(&l.r1, &p[k].X)
+			l.r2.Mul(&l.r2, &p[k].Y)
+			result2.MulBy014(&l.r0, &l.r1, &l.r2)
+
+            if loopCounterOptAteNew1NAF[i] == 1 {
+                qProj1[k].AddMixedStep(&l, &uq[k])
+                l.r1.Mul(&l.r1, &p[k].X)
+                l.r2.Mul(&l.r2, &p[k].Y)
+                result2.MulBy014(&l.r0, &l.r1, &l.r2).
+                    Mul(&result2, &result1Old)
+            } else if loopCounterOptAteNew1NAF[i] == -1 {
+                tmp.Neg(&uq[k])
+				qProj1[k].AddMixedStep(&l, &tmp)
+				l.r1.Mul(&l.r1, &p[k].X)
+				l.r2.Mul(&l.r2, &p[k].Y)
+				result2.MulBy014(&l.r0, &l.r1, &l.r2).
+                    Mul(&result2, &result1Inv)
+            }
+        }
+	}
+
+    // result2 = (f_{u+1})_{v,(u+1)Q}(P)
+
+    // l_{(u+1)vQ,-Q}(P)
+    for k := 0; k < n; k++ {
+        tmp.Neg(&q[k])
+        qProj1[k].AddMixedStep(&l, &tmp)
+        l.r1.Mul(&l.r1, &p[k].X)
+        l.r2.Mul(&l.r2, &p[k].Y)
+        result2.MulBy014(&l.r0, &l.r1, &l.r2)
+    }
+
+	result2.Frobenius(&result2).
+		Mul(&result2, &result1)
+
+   // result2 = f_{u,Q}(P) * l_{uQ,Q}(P) * (f_u)_{v,uQ}(P)^q
+
+	return result2, nil
+}
+
 
 // MillerLoop Optimal Ate New (binary)
 // f_{u+1,Q}(P) * (f_{u+1})^q_{u^2-2u-1,[u+1]Q}(P) * l^q_{[(u+1)(u^2-2u+1)]Q,-Q}(P)

@@ -64,6 +64,7 @@ var loopCounterOptAte0 [64]int8
 var loopCounterOptAte1 [127]int8
 var loopCounterOptAte1Bin [127]int8
 var loopCounterOptAteNew1Bin [127]int8
+var loopCounterOptAteNew1NAF [127]int8
 var loopCounterOptTate0 [190]int8
 var loopCounterOptTate1 [190]int8
 
@@ -122,6 +123,10 @@ func init() {
 
     // (xGen-1)^2 (binary)
 	loopCounterOptAteNew1Bin = [127]int8{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 1, 0, 0, 1, 1, 0, 0, 1, 1, 1, 1, 1, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 1, 0, 1, 0, 0, 0, 1}
+
+    // (xGen-1)^2
+	T, _ = new(big.Int).SetString("91893752504881257682351033800651177984", 10)
+	ecc.NafDecomposition(T, loopCounterOptAteNew1NAF[:])
 
 
 	// xGen^3-xGen^2+1
