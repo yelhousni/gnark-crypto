@@ -140,17 +140,26 @@ func FinalExponentiation(z *GT, _z ...*GT) GT {
 
 // MillerLoop Miller loop
 func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
+	/* https://hackmd.io/@yelhousni/BW6-761-changes */
+	/* Eq. (1) binary-2NAF */
 	// return MillerLoopOptAteNaive(P, Q)
+	/* Eq. (2) binary-binary */
 	// return MultiMillerLoopOptAteBinary(P,Q)
+	/* Eq. (2) binary-2NAF */
 	// return MultiMillerLoopOptAte2NAF(P, Q)
+	/* Eq. (4) binary-binary */
 	// return MultiMillerLoopOptAteNewBinary(P, Q)
-	return MultiMillerLoopOptAteNew2NAF(P, Q)
+	/* Eq. (4) binary-2NAF */
+	// return MultiMillerLoopOptAteNew2NAF(P, Q)
+	/* Eq. (5) 2NAF */
 	// return MillerLoopOptTate(P, Q)
-	// return MillerLoopOptTateAlt(P,Q)
+	/* Eq. (6) 2NAF */
+	return MillerLoopOptTateAlt(P, Q)
 }
 
 // MillerLoop Optimal Tate alternative (or twisted ate or Eta revisited)
 // Alg.2 in https://eprint.iacr.org/2021/1359.pdf
+// Eq. (6) in https://hackmd.io/@yelhousni/BW6-761-changes
 func MillerLoopOptTateAlt(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)
@@ -299,6 +308,7 @@ func MillerLoopOptTateAlt(P []G1Affine, Q []G2Affine) (GT, error) {
 
 // MillerLoop Optimal Tate (or twisted ate or Eta revisited)
 // Alg.2 in https://eprint.iacr.org/2021/1359.pdf
+// Eq. (5) in https://hackmd.io/@yelhousni/BW6-761-changes
 func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)
