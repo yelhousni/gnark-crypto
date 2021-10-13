@@ -874,6 +874,13 @@ func (p *g2Proj) Set(a *g2Proj) *g2Proj {
 	return p
 }
 
+// Neg computes -G
+func (p *g2Proj) Neg(a *g2Proj) *g2Proj {
+	p.x = a.x
+	p.y.Neg(&a.y)
+	return p
+}
+
 // FromJacobian converts a point from Jacobian to projective coordinates
 func (p *g2Proj) FromJacobian(Q *G2Jac) *g2Proj {
 	var buf fp.Element

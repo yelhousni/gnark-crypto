@@ -154,7 +154,155 @@ func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
 	/* Eq. (5) 2NAF */
 	// return MillerLoopOptTate(P, Q)
 	/* Eq. (6) 2NAF */
-	return MillerLoopOptTateAlt(P, Q)
+	// return MillerLoopOptTateAlt(P, Q)
+	/* Eq. (6') 2NAF */
+	return MillerLoopOptAteAlg2(P, Q)
+}
+
+// MillerLoopOptAteAlg2 Miller loop
+func MillerLoopOptAteAlg2(P []G1Affine, Q []G2Affine) (GT, error) {
+	// check input size match
+	n := len(P)
+	if n == 0 || n != len(Q) {
+		return GT{}, errors.New("invalid inputs sizes")
+	}
+
+	// filter infinity points
+	p := make([]G1Affine, 0, n)
+	q0 := make([]G2Affine, 0, n)
+
+	for k := 0; k < n; k++ {
+		if P[k].IsInfinity() || Q[k].IsInfinity() {
+			continue
+		}
+		p = append(p, P[k])
+		q0 = append(q0, Q[k])
+	}
+
+	n = len(p)
+
+	// precomputations
+	qProj1 := make([]g2Proj, n)
+	q1 := make([]G2Affine, n)
+	q01 := make([]G2Affine, n)
+	q10 := make([]G2Affine, n)
+	qProj01 := make([]g2Proj, n)
+	qProj10 := make([]g2Proj, n)
+	l01 := make([]lineEvaluation, n)
+	l10 := make([]lineEvaluation, n)
+	for k := 0; k < n; k++ {
+		q1[k].Y.Neg(&q0[k].Y)
+		q1[k].X.Mul(&q0[k].X, &thirdRootOneG1)
+		qProj1[k].FromAffine(&q1[k])
+
+		// l_{q0,q1}(p)
+		qProj01[k].Set(&qProj1[k])
+		qProj01[k].AddMixedStep(&l01[k], &q0[k])
+		l01[k].r1.Mul(&l01[k].r1, &p[k].X)
+		l01[k].r2.Mul(&l01[k].r2, &p[k].Y)
+
+		// l_{q0,-q1}(q)
+		qProj10[k].Neg(&qProj1[k])
+		qProj10[k].AddMixedStep(&l10[k], &q0[k])
+		l10[k].r1.Mul(&l10[k].r1, &p[k].X)
+		l10[k].r2.Mul(&l10[k].r2, &p[k].Y)
+	}
+	BatchProjectiveToAffineG2(qProj01, q01)
+	BatchProjectiveToAffineG2(qProj10, q10)
+
+	// f_{a0+lambda*a1,Q}(P)
+	var result, ss GT
+	result.SetOne()
+	var l, l0 lineEvaluation
+
+	var j int8
+
+	// i = 188
+	for k := 0; k < n; k++ {
+		qProj1[k].DoubleStep(&l0)
+		l0.r1.Mul(&l0.r1, &p[k].X)
+		l0.r2.Mul(&l0.r2, &p[k].Y)
+		result.MulBy014(&l0.r0, &l0.r1, &l0.r2)
+	}
+
+	var tmp G2Affine
+	for i := 187; i >= 0; i-- {
+		result.Square(&result)
+
+		j = loopCounterOptAteNaive1[i]*3 + loopCounterOptTate1[i]
+
+		for k := 0; k < n; k++ {
+			qProj1[k].DoubleStep(&l0)
+			l0.r1.Mul(&l0.r1, &p[k].X)
+			l0.r2.Mul(&l0.r2, &p[k].Y)
+
+			switch j {
+			case -4:
+				tmp.Neg(&q01[k])
+				qProj1[k].AddMixedStep(&l, &tmp)
+				l.r1.Mul(&l.r1, &p[k].X)
+				l.r2.Mul(&l.r2, &p[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
+				result.MulBy014(&l0.r0, &l0.r1, &l0.r2).
+					Mul(&result, &ss)
+			case -3:
+				tmp.Neg(&q1[k])
+				qProj1[k].AddMixedStep(&l, &tmp)
+				l.r1.Mul(&l.r1, &p[k].X)
+				l.r2.Mul(&l.r2, &p[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
+			case -2:
+				qProj1[k].AddMixedStep(&l, &q10[k])
+				l.r1.Mul(&l.r1, &p[k].X)
+				l.r2.Mul(&l.r2, &p[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l10[k].r0, &l10[k].r1, &l10[k].r2)
+				result.MulBy014(&l0.r0, &l0.r1, &l0.r2).
+					Mul(&result, &ss)
+			case -1:
+				tmp.Neg(&q0[k])
+				qProj1[k].AddMixedStep(&l, &tmp)
+				l.r1.Mul(&l.r1, &p[k].X)
+				l.r2.Mul(&l.r2, &p[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
+			case 0:
+				result.MulBy014(&l0.r0, &l0.r1, &l0.r2)
+			case 1:
+				qProj1[k].AddMixedStep(&l, &q0[k])
+				l.r1.Mul(&l.r1, &p[k].X)
+				l.r2.Mul(&l.r2, &p[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
+			case 2:
+				tmp.Neg(&q10[k])
+				qProj1[k].AddMixedStep(&l, &tmp)
+				l.r1.Mul(&l.r1, &p[k].X)
+				l.r2.Mul(&l.r2, &p[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l10[k].r0, &l10[k].r1, &l10[k].r2)
+				result.MulBy014(&l0.r0, &l0.r1, &l0.r2).
+					Mul(&result, &ss)
+			case 3:
+				qProj1[k].AddMixedStep(&l, &q1[k])
+				l.r1.Mul(&l.r1, &p[k].X)
+				l.r2.Mul(&l.r2, &p[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l0.r0, &l0.r1, &l0.r2)
+				result.Mul(&result, &ss)
+			case 4:
+				qProj1[k].AddMixedStep(&l, &q01[k])
+				l.r1.Mul(&l.r1, &p[k].X)
+				l.r2.Mul(&l.r2, &p[k].Y)
+				ss.Mul014By014(&l.r0, &l.r1, &l.r2, &l01[k].r0, &l01[k].r1, &l01[k].r2)
+				result.MulBy014(&l0.r0, &l0.r1, &l0.r2).
+					Mul(&result, &ss)
+			default:
+				return GT{}, errors.New("invalid loopCounter")
+			}
+		}
+	}
+
+	return result, nil
+
 }
 
 // MillerLoop Optimal Tate alternative (or twisted ate or Eta revisited)
