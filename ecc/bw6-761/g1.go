@@ -1004,7 +1004,7 @@ func BatchScalarMultiplicationG1(base *G1Affine, scalars []fr.Element) []G1Affin
 	return toReturnAff
 }
 
- // -------------------------------------------------------------------------------------------------
+// -------------------------------------------------------------------------------------------------
 // Homogenous projective
 
 // Set sets p to the provided point
