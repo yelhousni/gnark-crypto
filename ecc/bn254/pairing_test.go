@@ -251,6 +251,19 @@ func BenchmarkFinalExponentiation(b *testing.B) {
 
 }
 
+func BenchmarkMultiMiller(b *testing.B) {
+
+	var g1GenAff G1Affine
+	var g2GenAff G2Affine
+
+	g1GenAff.FromJacobian(&g1Gen)
+	g2GenAff.FromJacobian(&g2Gen)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Pair([]G1Affine{g1GenAff, g1GenAff, g1GenAff, g1GenAff, g1GenAff}, []G2Affine{g2GenAff, g2GenAff, g2GenAff, g2GenAff, g2GenAff})
+	}
+}
 func BenchmarkMultiPairing(b *testing.B) {
 
 	var g1GenAff G1Affine
