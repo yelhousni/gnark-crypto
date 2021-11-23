@@ -140,7 +140,7 @@ func FinalExponentiation(z *GT, _z ...*GT) GT {
 
 // MillerLoop Miller loop
 func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
-	/* https://hackmd.io/@yelhousni/BW6-761-changes */
+	/* https://hackmd.io/@zkteam/BW6-761-changes */
 	/* Eq. (1) binary-2NAF */
 	// return MillerLoopOptAteNaive(P, Q)
 	/* Eq. (2) binary-binary */
@@ -150,13 +150,13 @@ func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
 	/* Eq. (4) binary-binary */
 	// return MultiMillerLoopOptAteNewBinary(P, Q)
 	/* Eq. (4) binary-2NAF */
-	// return MultiMillerLoopOptAteNew2NAF(P, Q)
+	return MultiMillerLoopOptAteNew2NAF(P, Q)
 	/* Eq. (5) 2NAF */
 	// return MillerLoopOptTate(P, Q)
 	/* Eq. (6) 2NAF */
 	// return MillerLoopOptTateAlt(P, Q)
 	/* Eq. (5') 2NAF */
-	return MillerLoopOptAteAlg2(P, Q)
+	// return MillerLoopOptAteAlg2(P, Q)
 	/* Eq. (6') 2NAF */
 	// return MillerLoopOptAteAlg2Alt(P, Q)
 }
@@ -455,7 +455,7 @@ func MillerLoopOptAteAlg2Alt(P []G1Affine, Q []G2Affine) (GT, error) {
 
 // MillerLoop Optimal Tate alternative (or twisted ate or Eta revisited)
 // Alg.2 in https://eprint.iacr.org/2021/1359.pdf
-// Eq. (6) in https://hackmd.io/@yelhousni/BW6-761-changes
+// Eq. (6) in https://hackmd.io/@zkteam/BW6-761-changes
 func MillerLoopOptTateAlt(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)
@@ -604,7 +604,7 @@ func MillerLoopOptTateAlt(P []G1Affine, Q []G2Affine) (GT, error) {
 
 // MillerLoop Optimal Tate (or twisted ate or Eta revisited)
 // Alg.2 in https://eprint.iacr.org/2021/1359.pdf
-// Eq. (5) in https://hackmd.io/@yelhousni/BW6-761-changes
+// Eq. (5) in https://hackmd.io/@zkteam/BW6-761-changes
 func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)
@@ -751,7 +751,7 @@ func MillerLoopOptTate(P []G1Affine, Q []G2Affine) (GT, error) {
 
 // MultiMillerLoop Optimal Ate New (2-NAF)
 // f_{u+1,Q}(P) * (f_{u+1})^q_{u^2-2u-1,[u+1]Q}(P) * l^q_{[(u+1)(u^2-2u+1)]Q,-Q}(P)
-// Eq. (4) binary-2NAF in https://hackmd.io/@yelhousni/BW6-761-changes
+// Eq. (4) binary-2NAF in https://hackmd.io/@zkteam/BW6-761-changes
 func MultiMillerLoopOptAteNew2NAF(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)
@@ -788,7 +788,7 @@ func MultiMillerLoopOptAteNew2NAF(P []G1Affine, Q []G2Affine) (GT, error) {
 
 // MillerLoop Optimal Ate New (2-NAF)
 // f_{u+1,Q}(P) * (f_{u+1})^q_{u^2-2u-1,[u+1]Q}(P) * l^q_{[(u+1)(u^2-2u+1)]Q,-Q}(P)
-// Eq. (4) binary-2NAF in https://hackmd.io/@yelhousni/BW6-761-changes
+// Eq. (4) binary-2NAF in https://hackmd.io/@zkteam/BW6-761-changes
 func MillerLoopOptAteNew2NAF(p G1Affine, q G2Affine) (GT, error) {
 	// projective points for Q
 	var qProj1, qProj2 g2Proj
@@ -827,7 +827,7 @@ func MillerLoopOptAteNew2NAF(p G1Affine, q G2Affine) (GT, error) {
 
 	var result1Old, result1Inv GT
 	result1Old.Set(&result1)
-	result1Inv.Inverse(&result1)
+	result1Inv.Conjugate(&result1)
 
 	var uq G2Affine
 	uq.FromProjective(&qProj1)
@@ -876,7 +876,7 @@ func MillerLoopOptAteNew2NAF(p G1Affine, q G2Affine) (GT, error) {
 
 // MultiMillerLoop Optimal Ate New (binary)
 // f_{u+1,Q}(P) * (f_{u+1})^q_{u^2-2u-1,[u+1]Q}(P) * l^q_{[(u+1)(u^2-2u+1)]Q,-Q}(P)
-// Eq. (4) binary-binary in https://hackmd.io/@yelhousni/BW6-761-changes
+// Eq. (4) binary-binary in https://hackmd.io/@zkteam/BW6-761-changes
 func MultiMillerLoopOptAteNewBinary(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)
@@ -913,7 +913,7 @@ func MultiMillerLoopOptAteNewBinary(P []G1Affine, Q []G2Affine) (GT, error) {
 
 // MillerLoop Optimal Ate New (binary)
 // f_{u+1,Q}(P) * (f_{u+1})^q_{u^2-2u-1,[u+1]Q}(P) * l^q_{[(u+1)(u^2-2u+1)]Q,-Q}(P)
-// Eq. (4) binary-binary in https://hackmd.io/@yelhousni/BW6-761-changes
+// Eq. (4) binary-binary in https://hackmd.io/@zkteam/BW6-761-changes
 func MillerLoopOptAteNewBinary(p G1Affine, q G2Affine) (GT, error) {
 
 	// projective points for Q
@@ -996,7 +996,7 @@ func MillerLoopOptAteNewBinary(p G1Affine, q G2Affine) (GT, error) {
 
 // MultiMillerLoop Optimal Ate (binary)
 // f_{u,Q}(P) * l_{[u]Q,Q}(P) * (f_u)^q_{u^2-u-1,[u]Q}(P)
-// Eq. (2) binary-binary in https://hackmd.io/@yelhousni/BW6-761-changes
+// Eq. (2) binary-binary in https://hackmd.io/@zkteam/BW6-761-changes
 func MultiMillerLoopOptAteBinary(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)
@@ -1033,7 +1033,7 @@ func MultiMillerLoopOptAteBinary(P []G1Affine, Q []G2Affine) (GT, error) {
 
 // MillerLoop Optimal Ate (binary)
 // f_{u,Q}(P) * l_{[u]Q,Q}(P) * (f_u)^q_{u^2-u-1,[u]Q}(P)
-// Eq. (2) binary-binary in https://hackmd.io/@yelhousni/BW6-761-changes
+// Eq. (2) binary-binary in https://hackmd.io/@zkteam/BW6-761-changes
 func MillerLoopOptAteBinary(p G1Affine, q G2Affine) (GT, error) {
 	var qProj1, qProj2 g2Proj
 	qProj1.FromAffine(&q)
@@ -1111,7 +1111,7 @@ func MillerLoopOptAteBinary(p G1Affine, q G2Affine) (GT, error) {
 
 // MultiMillerLoop Optimal Ate (2-NAF)
 // f_{u,Q}(P) * l_{[u]Q,Q}(P) * (f_u)^q_{u^2-u-1,[u]Q}(P)
-// Eq. (2) binary-2NAF in https://hackmd.io/@yelhousni/BW6-761-changes
+// Eq. (2) binary-2NAF in https://hackmd.io/@zkteam/BW6-761-changes
 func MultiMillerLoopOptAte2NAF(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)
@@ -1148,7 +1148,7 @@ func MultiMillerLoopOptAte2NAF(P []G1Affine, Q []G2Affine) (GT, error) {
 
 // MillerLoop Optimal Ate (2-NAF)
 // f_{u,Q}(P) * l_{[u]Q,Q}(P) * (f_u)^q_{u^2-u-1,[u]Q}(P)
-// Eq. (2) binary-2NAF in https://hackmd.io/@yelhousni/BW6-761-changes
+// Eq. (2) binary-2NAF in https://hackmd.io/@zkteam/BW6-761-changes
 func MillerLoopOptAte2NAF(p G1Affine, q G2Affine) (GT, error) {
 
 	// projective points for Q
@@ -1188,7 +1188,7 @@ func MillerLoopOptAte2NAF(p G1Affine, q G2Affine) (GT, error) {
 
 	var result1Old, result1Inv GT
 	result1Old.Set(&result1)
-	result1Inv.Inverse(&result1)
+	result1Inv.Conjugate(&result1)
 
 	var uq G2Affine
 	uq.FromProjective(&qProj1)
@@ -1238,7 +1238,7 @@ func MillerLoopOptAte2NAF(p G1Affine, q G2Affine) (GT, error) {
 
 // MillerLoop Optimal Ate Naive
 // f_{u+1,Q}(P) * f_{u^3-u^2-u,Q}(P)
-// Eq. (1) in https://hackmd.io/@yelhousni/BW6-761-changes
+// Eq. (1) in https://hackmd.io/@zkteam/BW6-761-changes
 func MillerLoopOptAteNaive(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)
