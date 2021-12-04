@@ -1,0 +1,1214 @@
+// Copyright 2020 ConsenSys Software Inc.
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+#include "textflag.h"
+#include "funcdata.h"
+
+// modulus q
+DATA q<>+0(SB)/8, $0x8934c7021b91ac85
+DATA q<>+8(SB)/8, $0xdab9c466b1b2bc48
+DATA q<>+16(SB)/8, $0x824dc73fff2da9fd
+DATA q<>+24(SB)/8, $0xa1a2a3d26b4bd838
+DATA q<>+32(SB)/8, $0xe77b14dd2e56f4a7
+DATA q<>+40(SB)/8, $0x7c57d24e3ce37a31
+DATA q<>+48(SB)/8, $0x0f2bc8c1e2f1fab7
+DATA q<>+56(SB)/8, $0x4820884f6107f340
+DATA q<>+64(SB)/8, $0xb4c5dfed8b7cea64
+DATA q<>+72(SB)/8, $0x00f2266e569c19a3
+GLOBL q<>(SB), (RODATA+NOPTR), $80
+
+// qInv0 q'[0]
+DATA qInv0<>(SB)/8, $0x093579382d0493b3
+GLOBL qInv0<>(SB), (RODATA+NOPTR), $8
+
+#define REDUCE(ra0, ra1, ra2, ra3, ra4, ra5, ra6, ra7, ra8, ra9, rb0, rb1, rb2, rb3, rb4, rb5, rb6, rb7, rb8, rb9) \
+	MOVQ    ra0, rb0;        \
+	SUBQ    q<>(SB), ra0;    \
+	MOVQ    ra1, rb1;        \
+	SBBQ    q<>+8(SB), ra1;  \
+	MOVQ    ra2, rb2;        \
+	SBBQ    q<>+16(SB), ra2; \
+	MOVQ    ra3, rb3;        \
+	SBBQ    q<>+24(SB), ra3; \
+	MOVQ    ra4, rb4;        \
+	SBBQ    q<>+32(SB), ra4; \
+	MOVQ    ra5, rb5;        \
+	SBBQ    q<>+40(SB), ra5; \
+	MOVQ    ra6, rb6;        \
+	SBBQ    q<>+48(SB), ra6; \
+	MOVQ    ra7, rb7;        \
+	SBBQ    q<>+56(SB), ra7; \
+	MOVQ    ra8, rb8;        \
+	SBBQ    q<>+64(SB), ra8; \
+	MOVQ    ra9, rb9;        \
+	SBBQ    q<>+72(SB), ra9; \
+	CMOVQCS rb0, ra0;        \
+	CMOVQCS rb1, ra1;        \
+	CMOVQCS rb2, ra2;        \
+	CMOVQCS rb3, ra3;        \
+	CMOVQCS rb4, ra4;        \
+	CMOVQCS rb5, ra5;        \
+	CMOVQCS rb6, ra6;        \
+	CMOVQCS rb7, ra7;        \
+	CMOVQCS rb8, ra8;        \
+	CMOVQCS rb9, ra9;        \
+
+// add(res, x, y *Element)
+TEXT ·add(SB), $48-24
+	MOVQ x+8(FP), AX
+	MOVQ 0(AX), CX
+	MOVQ 8(AX), BX
+	MOVQ 16(AX), SI
+	MOVQ 24(AX), DI
+	MOVQ 32(AX), R8
+	MOVQ 40(AX), R9
+	MOVQ 48(AX), R10
+	MOVQ 56(AX), R11
+	MOVQ 64(AX), R12
+	MOVQ 72(AX), R13
+	MOVQ y+16(FP), DX
+	ADDQ 0(DX), CX
+	ADCQ 8(DX), BX
+	ADCQ 16(DX), SI
+	ADCQ 24(DX), DI
+	ADCQ 32(DX), R8
+	ADCQ 40(DX), R9
+	ADCQ 48(DX), R10
+	ADCQ 56(DX), R11
+	ADCQ 64(DX), R12
+	ADCQ 72(DX), R13
+
+	// reduce element(CX,BX,SI,DI,R8,R9,R10,R11,R12,R13) using temp registers (R14,R15,AX,DX,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP))
+	REDUCE(CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,AX,DX,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP))
+
+	MOVQ res+0(FP), R14
+	MOVQ CX, 0(R14)
+	MOVQ BX, 8(R14)
+	MOVQ SI, 16(R14)
+	MOVQ DI, 24(R14)
+	MOVQ R8, 32(R14)
+	MOVQ R9, 40(R14)
+	MOVQ R10, 48(R14)
+	MOVQ R11, 56(R14)
+	MOVQ R12, 64(R14)
+	MOVQ R13, 72(R14)
+	RET
+
+// sub(res, x, y *Element)
+TEXT ·sub(SB), NOSPLIT, $0-24
+	MOVQ x+8(FP), R12
+	MOVQ 0(R12), AX
+	MOVQ 8(R12), DX
+	MOVQ 16(R12), CX
+	MOVQ 24(R12), BX
+	MOVQ 32(R12), SI
+	MOVQ 40(R12), DI
+	MOVQ 48(R12), R8
+	MOVQ 56(R12), R9
+	MOVQ 64(R12), R10
+	MOVQ 72(R12), R11
+	MOVQ y+16(FP), R12
+	SUBQ 0(R12), AX
+	SBBQ 8(R12), DX
+	SBBQ 16(R12), CX
+	SBBQ 24(R12), BX
+	SBBQ 32(R12), SI
+	SBBQ 40(R12), DI
+	SBBQ 48(R12), R8
+	SBBQ 56(R12), R9
+	SBBQ 64(R12), R10
+	SBBQ 72(R12), R11
+	JCC  l1
+	MOVQ $0x8934c7021b91ac85, R13
+	ADDQ R13, AX
+	MOVQ $0xdab9c466b1b2bc48, R13
+	ADCQ R13, DX
+	MOVQ $0x824dc73fff2da9fd, R13
+	ADCQ R13, CX
+	MOVQ $0xa1a2a3d26b4bd838, R13
+	ADCQ R13, BX
+	MOVQ $0xe77b14dd2e56f4a7, R13
+	ADCQ R13, SI
+	MOVQ $0x7c57d24e3ce37a31, R13
+	ADCQ R13, DI
+	MOVQ $0x0f2bc8c1e2f1fab7, R13
+	ADCQ R13, R8
+	MOVQ $0x4820884f6107f340, R13
+	ADCQ R13, R9
+	MOVQ $0xb4c5dfed8b7cea64, R13
+	ADCQ R13, R10
+	MOVQ $0x00f2266e569c19a3, R13
+	ADCQ R13, R11
+
+l1:
+	MOVQ res+0(FP), R14
+	MOVQ AX, 0(R14)
+	MOVQ DX, 8(R14)
+	MOVQ CX, 16(R14)
+	MOVQ BX, 24(R14)
+	MOVQ SI, 32(R14)
+	MOVQ DI, 40(R14)
+	MOVQ R8, 48(R14)
+	MOVQ R9, 56(R14)
+	MOVQ R10, 64(R14)
+	MOVQ R11, 72(R14)
+	RET
+
+// double(res, x *Element)
+TEXT ·double(SB), $48-16
+	MOVQ x+8(FP), AX
+	MOVQ 0(AX), DX
+	MOVQ 8(AX), CX
+	MOVQ 16(AX), BX
+	MOVQ 24(AX), SI
+	MOVQ 32(AX), DI
+	MOVQ 40(AX), R8
+	MOVQ 48(AX), R9
+	MOVQ 56(AX), R10
+	MOVQ 64(AX), R11
+	MOVQ 72(AX), R12
+	ADDQ DX, DX
+	ADCQ CX, CX
+	ADCQ BX, BX
+	ADCQ SI, SI
+	ADCQ DI, DI
+	ADCQ R8, R8
+	ADCQ R9, R9
+	ADCQ R10, R10
+	ADCQ R11, R11
+	ADCQ R12, R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (R13,R14,R15,AX,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,AX,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP))
+
+	MOVQ res+0(FP), R13
+	MOVQ DX, 0(R13)
+	MOVQ CX, 8(R13)
+	MOVQ BX, 16(R13)
+	MOVQ SI, 24(R13)
+	MOVQ DI, 32(R13)
+	MOVQ R8, 40(R13)
+	MOVQ R9, 48(R13)
+	MOVQ R10, 56(R13)
+	MOVQ R11, 64(R13)
+	MOVQ R12, 72(R13)
+	RET
+
+// neg(res, x *Element)
+TEXT ·neg(SB), NOSPLIT, $0-16
+	MOVQ  res+0(FP), R13
+	MOVQ  x+8(FP), AX
+	MOVQ  0(AX), DX
+	MOVQ  8(AX), CX
+	MOVQ  16(AX), BX
+	MOVQ  24(AX), SI
+	MOVQ  32(AX), DI
+	MOVQ  40(AX), R8
+	MOVQ  48(AX), R9
+	MOVQ  56(AX), R10
+	MOVQ  64(AX), R11
+	MOVQ  72(AX), R12
+	MOVQ  DX, AX
+	ORQ   CX, AX
+	ORQ   BX, AX
+	ORQ   SI, AX
+	ORQ   DI, AX
+	ORQ   R8, AX
+	ORQ   R9, AX
+	ORQ   R10, AX
+	ORQ   R11, AX
+	ORQ   R12, AX
+	TESTQ AX, AX
+	JEQ   l2
+	MOVQ  $0x8934c7021b91ac85, R14
+	SUBQ  DX, R14
+	MOVQ  R14, 0(R13)
+	MOVQ  $0xdab9c466b1b2bc48, R14
+	SBBQ  CX, R14
+	MOVQ  R14, 8(R13)
+	MOVQ  $0x824dc73fff2da9fd, R14
+	SBBQ  BX, R14
+	MOVQ  R14, 16(R13)
+	MOVQ  $0xa1a2a3d26b4bd838, R14
+	SBBQ  SI, R14
+	MOVQ  R14, 24(R13)
+	MOVQ  $0xe77b14dd2e56f4a7, R14
+	SBBQ  DI, R14
+	MOVQ  R14, 32(R13)
+	MOVQ  $0x7c57d24e3ce37a31, R14
+	SBBQ  R8, R14
+	MOVQ  R14, 40(R13)
+	MOVQ  $0x0f2bc8c1e2f1fab7, R14
+	SBBQ  R9, R14
+	MOVQ  R14, 48(R13)
+	MOVQ  $0x4820884f6107f340, R14
+	SBBQ  R10, R14
+	MOVQ  R14, 56(R13)
+	MOVQ  $0xb4c5dfed8b7cea64, R14
+	SBBQ  R11, R14
+	MOVQ  R14, 64(R13)
+	MOVQ  $0x00f2266e569c19a3, R14
+	SBBQ  R12, R14
+	MOVQ  R14, 72(R13)
+	RET
+
+l2:
+	MOVQ AX, 0(R13)
+	MOVQ AX, 8(R13)
+	MOVQ AX, 16(R13)
+	MOVQ AX, 24(R13)
+	MOVQ AX, 32(R13)
+	MOVQ AX, 40(R13)
+	MOVQ AX, 48(R13)
+	MOVQ AX, 56(R13)
+	MOVQ AX, 64(R13)
+	MOVQ AX, 72(R13)
+	RET
+
+TEXT ·reduce(SB), $56-8
+	MOVQ res+0(FP), AX
+	MOVQ 0(AX), DX
+	MOVQ 8(AX), CX
+	MOVQ 16(AX), BX
+	MOVQ 24(AX), SI
+	MOVQ 32(AX), DI
+	MOVQ 40(AX), R8
+	MOVQ 48(AX), R9
+	MOVQ 56(AX), R10
+	MOVQ 64(AX), R11
+	MOVQ 72(AX), R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+
+	MOVQ DX, 0(AX)
+	MOVQ CX, 8(AX)
+	MOVQ BX, 16(AX)
+	MOVQ SI, 24(AX)
+	MOVQ DI, 32(AX)
+	MOVQ R8, 40(AX)
+	MOVQ R9, 48(AX)
+	MOVQ R10, 56(AX)
+	MOVQ R11, 64(AX)
+	MOVQ R12, 72(AX)
+	RET
+
+// MulBy3(x *Element)
+TEXT ·MulBy3(SB), $56-8
+	MOVQ x+0(FP), AX
+	MOVQ 0(AX), DX
+	MOVQ 8(AX), CX
+	MOVQ 16(AX), BX
+	MOVQ 24(AX), SI
+	MOVQ 32(AX), DI
+	MOVQ 40(AX), R8
+	MOVQ 48(AX), R9
+	MOVQ 56(AX), R10
+	MOVQ 64(AX), R11
+	MOVQ 72(AX), R12
+	ADDQ DX, DX
+	ADCQ CX, CX
+	ADCQ BX, BX
+	ADCQ SI, SI
+	ADCQ DI, DI
+	ADCQ R8, R8
+	ADCQ R9, R9
+	ADCQ R10, R10
+	ADCQ R11, R11
+	ADCQ R12, R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+
+	ADDQ 0(AX), DX
+	ADCQ 8(AX), CX
+	ADCQ 16(AX), BX
+	ADCQ 24(AX), SI
+	ADCQ 32(AX), DI
+	ADCQ 40(AX), R8
+	ADCQ 48(AX), R9
+	ADCQ 56(AX), R10
+	ADCQ 64(AX), R11
+	ADCQ 72(AX), R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+
+	MOVQ DX, 0(AX)
+	MOVQ CX, 8(AX)
+	MOVQ BX, 16(AX)
+	MOVQ SI, 24(AX)
+	MOVQ DI, 32(AX)
+	MOVQ R8, 40(AX)
+	MOVQ R9, 48(AX)
+	MOVQ R10, 56(AX)
+	MOVQ R11, 64(AX)
+	MOVQ R12, 72(AX)
+	RET
+
+// MulBy5(x *Element)
+TEXT ·MulBy5(SB), $56-8
+	MOVQ x+0(FP), AX
+	MOVQ 0(AX), DX
+	MOVQ 8(AX), CX
+	MOVQ 16(AX), BX
+	MOVQ 24(AX), SI
+	MOVQ 32(AX), DI
+	MOVQ 40(AX), R8
+	MOVQ 48(AX), R9
+	MOVQ 56(AX), R10
+	MOVQ 64(AX), R11
+	MOVQ 72(AX), R12
+	ADDQ DX, DX
+	ADCQ CX, CX
+	ADCQ BX, BX
+	ADCQ SI, SI
+	ADCQ DI, DI
+	ADCQ R8, R8
+	ADCQ R9, R9
+	ADCQ R10, R10
+	ADCQ R11, R11
+	ADCQ R12, R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+
+	ADDQ DX, DX
+	ADCQ CX, CX
+	ADCQ BX, BX
+	ADCQ SI, SI
+	ADCQ DI, DI
+	ADCQ R8, R8
+	ADCQ R9, R9
+	ADCQ R10, R10
+	ADCQ R11, R11
+	ADCQ R12, R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+
+	ADDQ 0(AX), DX
+	ADCQ 8(AX), CX
+	ADCQ 16(AX), BX
+	ADCQ 24(AX), SI
+	ADCQ 32(AX), DI
+	ADCQ 40(AX), R8
+	ADCQ 48(AX), R9
+	ADCQ 56(AX), R10
+	ADCQ 64(AX), R11
+	ADCQ 72(AX), R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+
+	MOVQ DX, 0(AX)
+	MOVQ CX, 8(AX)
+	MOVQ BX, 16(AX)
+	MOVQ SI, 24(AX)
+	MOVQ DI, 32(AX)
+	MOVQ R8, 40(AX)
+	MOVQ R9, 48(AX)
+	MOVQ R10, 56(AX)
+	MOVQ R11, 64(AX)
+	MOVQ R12, 72(AX)
+	RET
+
+// MulBy13(x *Element)
+TEXT ·MulBy13(SB), $136-8
+	MOVQ x+0(FP), AX
+	MOVQ 0(AX), DX
+	MOVQ 8(AX), CX
+	MOVQ 16(AX), BX
+	MOVQ 24(AX), SI
+	MOVQ 32(AX), DI
+	MOVQ 40(AX), R8
+	MOVQ 48(AX), R9
+	MOVQ 56(AX), R10
+	MOVQ 64(AX), R11
+	MOVQ 72(AX), R12
+	ADDQ DX, DX
+	ADCQ CX, CX
+	ADCQ BX, BX
+	ADCQ SI, SI
+	ADCQ DI, DI
+	ADCQ R8, R8
+	ADCQ R9, R9
+	ADCQ R10, R10
+	ADCQ R11, R11
+	ADCQ R12, R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+
+	ADDQ DX, DX
+	ADCQ CX, CX
+	ADCQ BX, BX
+	ADCQ SI, SI
+	ADCQ DI, DI
+	ADCQ R8, R8
+	ADCQ R9, R9
+	ADCQ R10, R10
+	ADCQ R11, R11
+	ADCQ R12, R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (s7-64(SP),s8-72(SP),s9-80(SP),s10-88(SP),s11-96(SP),s12-104(SP),s13-112(SP),s14-120(SP),s15-128(SP),s16-136(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,s7-64(SP),s8-72(SP),s9-80(SP),s10-88(SP),s11-96(SP),s12-104(SP),s13-112(SP),s14-120(SP),s15-128(SP),s16-136(SP))
+
+	MOVQ DX, s7-64(SP)
+	MOVQ CX, s8-72(SP)
+	MOVQ BX, s9-80(SP)
+	MOVQ SI, s10-88(SP)
+	MOVQ DI, s11-96(SP)
+	MOVQ R8, s12-104(SP)
+	MOVQ R9, s13-112(SP)
+	MOVQ R10, s14-120(SP)
+	MOVQ R11, s15-128(SP)
+	MOVQ R12, s16-136(SP)
+	ADDQ DX, DX
+	ADCQ CX, CX
+	ADCQ BX, BX
+	ADCQ SI, SI
+	ADCQ DI, DI
+	ADCQ R8, R8
+	ADCQ R9, R9
+	ADCQ R10, R10
+	ADCQ R11, R11
+	ADCQ R12, R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+
+	ADDQ s7-64(SP), DX
+	ADCQ s8-72(SP), CX
+	ADCQ s9-80(SP), BX
+	ADCQ s10-88(SP), SI
+	ADCQ s11-96(SP), DI
+	ADCQ s12-104(SP), R8
+	ADCQ s13-112(SP), R9
+	ADCQ s14-120(SP), R10
+	ADCQ s15-128(SP), R11
+	ADCQ s16-136(SP), R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+
+	ADDQ 0(AX), DX
+	ADCQ 8(AX), CX
+	ADCQ 16(AX), BX
+	ADCQ 24(AX), SI
+	ADCQ 32(AX), DI
+	ADCQ 40(AX), R8
+	ADCQ 48(AX), R9
+	ADCQ 56(AX), R10
+	ADCQ 64(AX), R11
+	ADCQ 72(AX), R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+
+	MOVQ DX, 0(AX)
+	MOVQ CX, 8(AX)
+	MOVQ BX, 16(AX)
+	MOVQ SI, 24(AX)
+	MOVQ DI, 32(AX)
+	MOVQ R8, 40(AX)
+	MOVQ R9, 48(AX)
+	MOVQ R10, 56(AX)
+	MOVQ R11, 64(AX)
+	MOVQ R12, 72(AX)
+	RET
+
+// Butterfly(a, b *Element) sets a = a + b; b = a - b
+TEXT ·Butterfly(SB), $56-16
+	MOVQ b+8(FP), AX
+	MOVQ 0(AX), DX
+	MOVQ 8(AX), CX
+	MOVQ 16(AX), BX
+	MOVQ 24(AX), SI
+	MOVQ 32(AX), DI
+	MOVQ 40(AX), R8
+	MOVQ 48(AX), R9
+	MOVQ 56(AX), R10
+	MOVQ 64(AX), R11
+	MOVQ 72(AX), R12
+	MOVQ a+0(FP), AX
+	ADDQ 0(AX), DX
+	ADCQ 8(AX), CX
+	ADCQ 16(AX), BX
+	ADCQ 24(AX), SI
+	ADCQ 32(AX), DI
+	ADCQ 40(AX), R8
+	ADCQ 48(AX), R9
+	ADCQ 56(AX), R10
+	ADCQ 64(AX), R11
+	ADCQ 72(AX), R12
+	MOVQ DX, R13
+	MOVQ CX, R14
+	MOVQ BX, R15
+	MOVQ SI, s0-8(SP)
+	MOVQ DI, s1-16(SP)
+	MOVQ R8, s2-24(SP)
+	MOVQ R9, s3-32(SP)
+	MOVQ R10, s4-40(SP)
+	MOVQ R11, s5-48(SP)
+	MOVQ R12, s6-56(SP)
+	MOVQ 0(AX), DX
+	MOVQ 8(AX), CX
+	MOVQ 16(AX), BX
+	MOVQ 24(AX), SI
+	MOVQ 32(AX), DI
+	MOVQ 40(AX), R8
+	MOVQ 48(AX), R9
+	MOVQ 56(AX), R10
+	MOVQ 64(AX), R11
+	MOVQ 72(AX), R12
+	MOVQ b+8(FP), AX
+	SUBQ 0(AX), DX
+	SBBQ 8(AX), CX
+	SBBQ 16(AX), BX
+	SBBQ 24(AX), SI
+	SBBQ 32(AX), DI
+	SBBQ 40(AX), R8
+	SBBQ 48(AX), R9
+	SBBQ 56(AX), R10
+	SBBQ 64(AX), R11
+	SBBQ 72(AX), R12
+	JCC  l3
+	MOVQ $0x8934c7021b91ac85, AX
+	ADDQ AX, DX
+	MOVQ $0xdab9c466b1b2bc48, AX
+	ADCQ AX, CX
+	MOVQ $0x824dc73fff2da9fd, AX
+	ADCQ AX, BX
+	MOVQ $0xa1a2a3d26b4bd838, AX
+	ADCQ AX, SI
+	MOVQ $0xe77b14dd2e56f4a7, AX
+	ADCQ AX, DI
+	MOVQ $0x7c57d24e3ce37a31, AX
+	ADCQ AX, R8
+	MOVQ $0x0f2bc8c1e2f1fab7, AX
+	ADCQ AX, R9
+	MOVQ $0x4820884f6107f340, AX
+	ADCQ AX, R10
+	MOVQ $0xb4c5dfed8b7cea64, AX
+	ADCQ AX, R11
+	MOVQ $0x00f2266e569c19a3, AX
+	ADCQ AX, R12
+
+l3:
+	MOVQ b+8(FP), AX
+	MOVQ DX, 0(AX)
+	MOVQ CX, 8(AX)
+	MOVQ BX, 16(AX)
+	MOVQ SI, 24(AX)
+	MOVQ DI, 32(AX)
+	MOVQ R8, 40(AX)
+	MOVQ R9, 48(AX)
+	MOVQ R10, 56(AX)
+	MOVQ R11, 64(AX)
+	MOVQ R12, 72(AX)
+	MOVQ R13, DX
+	MOVQ R14, CX
+	MOVQ R15, BX
+	MOVQ s0-8(SP), SI
+	MOVQ s1-16(SP), DI
+	MOVQ s2-24(SP), R8
+	MOVQ s3-32(SP), R9
+	MOVQ s4-40(SP), R10
+	MOVQ s5-48(SP), R11
+	MOVQ s6-56(SP), R12
+
+	// reduce element(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12) using temp registers (R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+	REDUCE(DX,CX,BX,SI,DI,R8,R9,R10,R11,R12,R13,R14,R15,s0-8(SP),s1-16(SP),s2-24(SP),s3-32(SP),s4-40(SP),s5-48(SP),s6-56(SP))
+
+	MOVQ a+0(FP), AX
+	MOVQ DX, 0(AX)
+	MOVQ CX, 8(AX)
+	MOVQ BX, 16(AX)
+	MOVQ SI, 24(AX)
+	MOVQ DI, 32(AX)
+	MOVQ R8, 40(AX)
+	MOVQ R9, 48(AX)
+	MOVQ R10, 56(AX)
+	MOVQ R11, 64(AX)
+	MOVQ R12, 72(AX)
+	RET
+
+// inverse(res, x *Element)
+TEXT ·inverse(SB), $296-16
+	// u = q
+	// u[0] -> R13
+	// u[1] -> R14
+	// u[2] -> R15
+	// u[3] -> s0-8(SP)
+	// u[4] -> s1-16(SP)
+	// u[5] -> s2-24(SP)
+	// u[6] -> s3-32(SP)
+	// u[7] -> s4-40(SP)
+	// u[8] -> s5-48(SP)
+	// u[9] -> s6-56(SP)
+	MOVQ q<>+0(SB), R12
+	MOVQ R12, R13
+	MOVQ q<>+8(SB), R12
+	MOVQ R12, R14
+	MOVQ q<>+16(SB), R12
+	MOVQ R12, R15
+	MOVQ q<>+24(SB), R12
+	MOVQ R12, s0-8(SP)
+	MOVQ q<>+32(SB), R12
+	MOVQ R12, s1-16(SP)
+	MOVQ q<>+40(SB), R12
+	MOVQ R12, s2-24(SP)
+	MOVQ q<>+48(SB), R12
+	MOVQ R12, s3-32(SP)
+	MOVQ q<>+56(SB), R12
+	MOVQ R12, s4-40(SP)
+	MOVQ q<>+64(SB), R12
+	MOVQ R12, s5-48(SP)
+	MOVQ q<>+72(SB), R12
+	MOVQ R12, s6-56(SP)
+
+	// s = r^2
+	// s[0] -> s27-224(SP)
+	// s[1] -> s28-232(SP)
+	// s[2] -> s29-240(SP)
+	// s[3] -> s30-248(SP)
+	// s[4] -> s31-256(SP)
+	// s[5] -> s32-264(SP)
+	// s[6] -> s33-272(SP)
+	// s[7] -> s34-280(SP)
+	// s[8] -> s35-288(SP)
+	// s[9] -> s36-296(SP)
+	MOVQ $0x6d6a1d9399e704f3, R12
+	MOVQ R12, s27-224(SP)
+	MOVQ $0x5b1a02edc9f6435f, R12
+	MOVQ R12, s28-232(SP)
+	MOVQ $0x7157de7fafc16e31, R12
+	MOVQ R12, s29-240(SP)
+	MOVQ $0x7e376cd76da28778, R12
+	MOVQ R12, s30-248(SP)
+	MOVQ $0x6e6d0853d656345d, R12
+	MOVQ R12, s31-256(SP)
+	MOVQ $0x9512314c1f789fda, R12
+	MOVQ R12, s32-264(SP)
+	MOVQ $0x375a1d0577143bb3, R12
+	MOVQ R12, s33-272(SP)
+	MOVQ $0xa095ed87551385b2, R12
+	MOVQ R12, s34-280(SP)
+	MOVQ $0xf0c239d686844355, R12
+	MOVQ R12, s35-288(SP)
+	MOVQ $0x0064269db6b107c5, R12
+	MOVQ R12, s36-296(SP)
+
+	// v = x
+	// v[0] -> s7-64(SP)
+	// v[1] -> s8-72(SP)
+	// v[2] -> s9-80(SP)
+	// v[3] -> s10-88(SP)
+	// v[4] -> s11-96(SP)
+	// v[5] -> s12-104(SP)
+	// v[6] -> s13-112(SP)
+	// v[7] -> s14-120(SP)
+	// v[8] -> s15-128(SP)
+	// v[9] -> s16-136(SP)
+	MOVQ x+8(FP), R12
+	MOVQ 0(R12), AX
+	MOVQ 8(R12), DX
+	MOVQ 16(R12), CX
+	MOVQ 24(R12), BX
+	MOVQ 32(R12), SI
+	MOVQ 40(R12), DI
+	MOVQ 48(R12), R8
+	MOVQ 56(R12), R9
+	MOVQ 64(R12), R10
+	MOVQ 72(R12), R11
+	MOVQ AX, s7-64(SP)
+	MOVQ DX, s8-72(SP)
+	MOVQ CX, s9-80(SP)
+	MOVQ BX, s10-88(SP)
+	MOVQ SI, s11-96(SP)
+	MOVQ DI, s12-104(SP)
+	MOVQ R8, s13-112(SP)
+	MOVQ R9, s14-120(SP)
+	MOVQ R10, s15-128(SP)
+	MOVQ R11, s16-136(SP)
+
+	// if x is 0, returns 0
+	MOVQ AX, R12
+	ORQ  DX, R12
+	ORQ  CX, R12
+	ORQ  BX, R12
+	ORQ  SI, R12
+	ORQ  DI, R12
+	ORQ  R8, R12
+	ORQ  R9, R12
+	ORQ  R10, R12
+	ORQ  R11, R12
+	JEQ  l9
+
+	// r = 0
+	// r[0] -> s17-144(SP)
+	// r[1] -> s18-152(SP)
+	// r[2] -> s19-160(SP)
+	// r[3] -> s20-168(SP)
+	// r[4] -> s21-176(SP)
+	// r[5] -> s22-184(SP)
+	// r[6] -> s23-192(SP)
+	// r[7] -> s24-200(SP)
+	// r[8] -> s25-208(SP)
+	// r[9] -> s26-216(SP)
+	MOVQ $0, s17-144(SP)
+	MOVQ $0, s18-152(SP)
+	MOVQ $0, s19-160(SP)
+	MOVQ $0, s20-168(SP)
+	MOVQ $0, s21-176(SP)
+	MOVQ $0, s22-184(SP)
+	MOVQ $0, s23-192(SP)
+	MOVQ $0, s24-200(SP)
+	MOVQ $0, s25-208(SP)
+	MOVQ $0, s26-216(SP)
+
+l4:
+	BTQ  $0, AX
+	JCS  l10
+	MOVQ $0, BP
+	XORQ R12, R12
+
+l11:
+	INCQ BP
+	SHRQ $1, AX, R12
+	SHRQ $1, DX, AX
+	SHRQ $1, CX, DX
+	SHRQ $1, BX, CX
+	SHRQ $1, SI, BX
+	SHRQ $1, DI, SI
+	SHRQ $1, R8, DI
+	SHRQ $1, R9, R8
+	SHRQ $1, R10, R9
+	SHRQ $1, R11, R10
+	SHRQ $1, R11
+	BTQ  $0, AX
+	JCC  l11
+	MOVQ AX, s7-64(SP)
+	MOVQ DX, s8-72(SP)
+	MOVQ CX, s9-80(SP)
+	MOVQ BX, s10-88(SP)
+	MOVQ SI, s11-96(SP)
+	MOVQ DI, s12-104(SP)
+	MOVQ R8, s13-112(SP)
+	MOVQ R9, s14-120(SP)
+	MOVQ R10, s15-128(SP)
+	MOVQ R11, s16-136(SP)
+	MOVQ s27-224(SP), AX
+	MOVQ s28-232(SP), DX
+	MOVQ s29-240(SP), CX
+	MOVQ s30-248(SP), BX
+	MOVQ s31-256(SP), SI
+	MOVQ s32-264(SP), DI
+	MOVQ s33-272(SP), R8
+	MOVQ s34-280(SP), R9
+	MOVQ s35-288(SP), R10
+	MOVQ s36-296(SP), R11
+
+l12:
+	BTQ  $0, AX
+	JCC  l13
+	ADDQ q<>+0(SB), AX
+	ADCQ q<>+8(SB), DX
+	ADCQ q<>+16(SB), CX
+	ADCQ q<>+24(SB), BX
+	ADCQ q<>+32(SB), SI
+	ADCQ q<>+40(SB), DI
+	ADCQ q<>+48(SB), R8
+	ADCQ q<>+56(SB), R9
+	ADCQ q<>+64(SB), R10
+	ADCQ q<>+72(SB), R11
+
+l13:
+	SHRQ $1, AX, R12
+	SHRQ $1, DX, AX
+	SHRQ $1, CX, DX
+	SHRQ $1, BX, CX
+	SHRQ $1, SI, BX
+	SHRQ $1, DI, SI
+	SHRQ $1, R8, DI
+	SHRQ $1, R9, R8
+	SHRQ $1, R10, R9
+	SHRQ $1, R11, R10
+	SHRQ $1, R11
+	DECQ BP
+	JNE  l12
+	MOVQ AX, s27-224(SP)
+	MOVQ DX, s28-232(SP)
+	MOVQ CX, s29-240(SP)
+	MOVQ BX, s30-248(SP)
+	MOVQ SI, s31-256(SP)
+	MOVQ DI, s32-264(SP)
+	MOVQ R8, s33-272(SP)
+	MOVQ R9, s34-280(SP)
+	MOVQ R10, s35-288(SP)
+	MOVQ R11, s36-296(SP)
+
+l10:
+	MOVQ R13, AX
+	MOVQ R14, DX
+	MOVQ R15, CX
+	MOVQ s0-8(SP), BX
+	MOVQ s1-16(SP), SI
+	MOVQ s2-24(SP), DI
+	MOVQ s3-32(SP), R8
+	MOVQ s4-40(SP), R9
+	MOVQ s5-48(SP), R10
+	MOVQ s6-56(SP), R11
+	BTQ  $0, AX
+	JCS  l14
+	MOVQ $0, BP
+	XORQ R12, R12
+
+l15:
+	INCQ BP
+	SHRQ $1, AX, R12
+	SHRQ $1, DX, AX
+	SHRQ $1, CX, DX
+	SHRQ $1, BX, CX
+	SHRQ $1, SI, BX
+	SHRQ $1, DI, SI
+	SHRQ $1, R8, DI
+	SHRQ $1, R9, R8
+	SHRQ $1, R10, R9
+	SHRQ $1, R11, R10
+	SHRQ $1, R11
+	BTQ  $0, AX
+	JCC  l15
+	MOVQ AX, R13
+	MOVQ DX, R14
+	MOVQ CX, R15
+	MOVQ BX, s0-8(SP)
+	MOVQ SI, s1-16(SP)
+	MOVQ DI, s2-24(SP)
+	MOVQ R8, s3-32(SP)
+	MOVQ R9, s4-40(SP)
+	MOVQ R10, s5-48(SP)
+	MOVQ R11, s6-56(SP)
+	MOVQ s17-144(SP), AX
+	MOVQ s18-152(SP), DX
+	MOVQ s19-160(SP), CX
+	MOVQ s20-168(SP), BX
+	MOVQ s21-176(SP), SI
+	MOVQ s22-184(SP), DI
+	MOVQ s23-192(SP), R8
+	MOVQ s24-200(SP), R9
+	MOVQ s25-208(SP), R10
+	MOVQ s26-216(SP), R11
+
+l16:
+	BTQ  $0, AX
+	JCC  l17
+	ADDQ q<>+0(SB), AX
+	ADCQ q<>+8(SB), DX
+	ADCQ q<>+16(SB), CX
+	ADCQ q<>+24(SB), BX
+	ADCQ q<>+32(SB), SI
+	ADCQ q<>+40(SB), DI
+	ADCQ q<>+48(SB), R8
+	ADCQ q<>+56(SB), R9
+	ADCQ q<>+64(SB), R10
+	ADCQ q<>+72(SB), R11
+
+l17:
+	SHRQ $1, AX, R12
+	SHRQ $1, DX, AX
+	SHRQ $1, CX, DX
+	SHRQ $1, BX, CX
+	SHRQ $1, SI, BX
+	SHRQ $1, DI, SI
+	SHRQ $1, R8, DI
+	SHRQ $1, R9, R8
+	SHRQ $1, R10, R9
+	SHRQ $1, R11, R10
+	SHRQ $1, R11
+	DECQ BP
+	JNE  l16
+	MOVQ AX, s17-144(SP)
+	MOVQ DX, s18-152(SP)
+	MOVQ CX, s19-160(SP)
+	MOVQ BX, s20-168(SP)
+	MOVQ SI, s21-176(SP)
+	MOVQ DI, s22-184(SP)
+	MOVQ R8, s23-192(SP)
+	MOVQ R9, s24-200(SP)
+	MOVQ R10, s25-208(SP)
+	MOVQ R11, s26-216(SP)
+
+l14:
+	// v = v - u
+	MOVQ s7-64(SP), AX
+	MOVQ s8-72(SP), DX
+	MOVQ s9-80(SP), CX
+	MOVQ s10-88(SP), BX
+	MOVQ s11-96(SP), SI
+	MOVQ s12-104(SP), DI
+	MOVQ s13-112(SP), R8
+	MOVQ s14-120(SP), R9
+	MOVQ s15-128(SP), R10
+	MOVQ s16-136(SP), R11
+	SUBQ R13, AX
+	SBBQ R14, DX
+	SBBQ R15, CX
+	SBBQ s0-8(SP), BX
+	SBBQ s1-16(SP), SI
+	SBBQ s2-24(SP), DI
+	SBBQ s3-32(SP), R8
+	SBBQ s4-40(SP), R9
+	SBBQ s5-48(SP), R10
+	SBBQ s6-56(SP), R11
+	JCC  l5
+	MOVQ R13, AX
+	MOVQ R14, DX
+	MOVQ R15, CX
+	MOVQ s0-8(SP), BX
+	MOVQ s1-16(SP), SI
+	MOVQ s2-24(SP), DI
+	MOVQ s3-32(SP), R8
+	MOVQ s4-40(SP), R9
+	MOVQ s5-48(SP), R10
+	MOVQ s6-56(SP), R11
+	SUBQ s7-64(SP), AX
+	SBBQ s8-72(SP), DX
+	SBBQ s9-80(SP), CX
+	SBBQ s10-88(SP), BX
+	SBBQ s11-96(SP), SI
+	SBBQ s12-104(SP), DI
+	SBBQ s13-112(SP), R8
+	SBBQ s14-120(SP), R9
+	SBBQ s15-128(SP), R10
+	SBBQ s16-136(SP), R11
+	MOVQ AX, R13
+	MOVQ DX, R14
+	MOVQ CX, R15
+	MOVQ BX, s0-8(SP)
+	MOVQ SI, s1-16(SP)
+	MOVQ DI, s2-24(SP)
+	MOVQ R8, s3-32(SP)
+	MOVQ R9, s4-40(SP)
+	MOVQ R10, s5-48(SP)
+	MOVQ R11, s6-56(SP)
+	MOVQ s17-144(SP), AX
+	MOVQ s18-152(SP), DX
+	MOVQ s19-160(SP), CX
+	MOVQ s20-168(SP), BX
+	MOVQ s21-176(SP), SI
+	MOVQ s22-184(SP), DI
+	MOVQ s23-192(SP), R8
+	MOVQ s24-200(SP), R9
+	MOVQ s25-208(SP), R10
+	MOVQ s26-216(SP), R11
+	SUBQ s27-224(SP), AX
+	SBBQ s28-232(SP), DX
+	SBBQ s29-240(SP), CX
+	SBBQ s30-248(SP), BX
+	SBBQ s31-256(SP), SI
+	SBBQ s32-264(SP), DI
+	SBBQ s33-272(SP), R8
+	SBBQ s34-280(SP), R9
+	SBBQ s35-288(SP), R10
+	SBBQ s36-296(SP), R11
+	JCC  l18
+	ADDQ q<>+0(SB), AX
+	ADCQ q<>+8(SB), DX
+	ADCQ q<>+16(SB), CX
+	ADCQ q<>+24(SB), BX
+	ADCQ q<>+32(SB), SI
+	ADCQ q<>+40(SB), DI
+	ADCQ q<>+48(SB), R8
+	ADCQ q<>+56(SB), R9
+	ADCQ q<>+64(SB), R10
+	ADCQ q<>+72(SB), R11
+
+l18:
+	MOVQ AX, s17-144(SP)
+	MOVQ DX, s18-152(SP)
+	MOVQ CX, s19-160(SP)
+	MOVQ BX, s20-168(SP)
+	MOVQ SI, s21-176(SP)
+	MOVQ DI, s22-184(SP)
+	MOVQ R8, s23-192(SP)
+	MOVQ R9, s24-200(SP)
+	MOVQ R10, s25-208(SP)
+	MOVQ R11, s26-216(SP)
+	JMP  l6
+
+l5:
+	MOVQ AX, s7-64(SP)
+	MOVQ DX, s8-72(SP)
+	MOVQ CX, s9-80(SP)
+	MOVQ BX, s10-88(SP)
+	MOVQ SI, s11-96(SP)
+	MOVQ DI, s12-104(SP)
+	MOVQ R8, s13-112(SP)
+	MOVQ R9, s14-120(SP)
+	MOVQ R10, s15-128(SP)
+	MOVQ R11, s16-136(SP)
+	MOVQ s27-224(SP), AX
+	MOVQ s28-232(SP), DX
+	MOVQ s29-240(SP), CX
+	MOVQ s30-248(SP), BX
+	MOVQ s31-256(SP), SI
+	MOVQ s32-264(SP), DI
+	MOVQ s33-272(SP), R8
+	MOVQ s34-280(SP), R9
+	MOVQ s35-288(SP), R10
+	MOVQ s36-296(SP), R11
+	SUBQ s17-144(SP), AX
+	SBBQ s18-152(SP), DX
+	SBBQ s19-160(SP), CX
+	SBBQ s20-168(SP), BX
+	SBBQ s21-176(SP), SI
+	SBBQ s22-184(SP), DI
+	SBBQ s23-192(SP), R8
+	SBBQ s24-200(SP), R9
+	SBBQ s25-208(SP), R10
+	SBBQ s26-216(SP), R11
+	JCC  l19
+	ADDQ q<>+0(SB), AX
+	ADCQ q<>+8(SB), DX
+	ADCQ q<>+16(SB), CX
+	ADCQ q<>+24(SB), BX
+	ADCQ q<>+32(SB), SI
+	ADCQ q<>+40(SB), DI
+	ADCQ q<>+48(SB), R8
+	ADCQ q<>+56(SB), R9
+	ADCQ q<>+64(SB), R10
+	ADCQ q<>+72(SB), R11
+
+l19:
+	MOVQ AX, s27-224(SP)
+	MOVQ DX, s28-232(SP)
+	MOVQ CX, s29-240(SP)
+	MOVQ BX, s30-248(SP)
+	MOVQ SI, s31-256(SP)
+	MOVQ DI, s32-264(SP)
+	MOVQ R8, s33-272(SP)
+	MOVQ R9, s34-280(SP)
+	MOVQ R10, s35-288(SP)
+	MOVQ R11, s36-296(SP)
+
+l6:
+	MOVQ R13, AX
+	MOVQ R14, DX
+	MOVQ R15, CX
+	MOVQ s0-8(SP), BX
+	MOVQ s1-16(SP), SI
+	MOVQ s2-24(SP), DI
+	MOVQ s3-32(SP), R8
+	MOVQ s4-40(SP), R9
+	MOVQ s5-48(SP), R10
+	MOVQ s6-56(SP), R11
+	SUBQ $1, AX
+	ORQ  AX, R11
+	ORQ  DX, R11
+	ORQ  CX, R11
+	ORQ  BX, R11
+	ORQ  SI, R11
+	ORQ  DI, R11
+	ORQ  R8, R11
+	ORQ  R9, R11
+	ORQ  R10, R11
+	JEQ  l7
+	MOVQ s7-64(SP), AX
+	MOVQ s8-72(SP), DX
+	MOVQ s9-80(SP), CX
+	MOVQ s10-88(SP), BX
+	MOVQ s11-96(SP), SI
+	MOVQ s12-104(SP), DI
+	MOVQ s13-112(SP), R8
+	MOVQ s14-120(SP), R9
+	MOVQ s15-128(SP), R10
+	MOVQ s16-136(SP), R11
+	MOVQ AX, R12
+	SUBQ $1, R12
+	JNE  l4
+	ORQ  DX, R12
+	ORQ  CX, R12
+	ORQ  BX, R12
+	ORQ  SI, R12
+	ORQ  DI, R12
+	ORQ  R8, R12
+	ORQ  R9, R12
+	ORQ  R10, R12
+	ORQ  R11, R12
+	JEQ  l8
+	JMP  l4
+
+l7:
+	MOVQ res+0(FP), R12
+	MOVQ s17-144(SP), AX
+	MOVQ s18-152(SP), DX
+	MOVQ s19-160(SP), CX
+	MOVQ s20-168(SP), BX
+	MOVQ s21-176(SP), SI
+	MOVQ s22-184(SP), DI
+	MOVQ s23-192(SP), R8
+	MOVQ s24-200(SP), R9
+	MOVQ s25-208(SP), R10
+	MOVQ s26-216(SP), R11
+	MOVQ AX, 0(R12)
+	MOVQ DX, 8(R12)
+	MOVQ CX, 16(R12)
+	MOVQ BX, 24(R12)
+	MOVQ SI, 32(R12)
+	MOVQ DI, 40(R12)
+	MOVQ R8, 48(R12)
+	MOVQ R9, 56(R12)
+	MOVQ R10, 64(R12)
+	MOVQ R11, 72(R12)
+	RET
+
+l8:
+	MOVQ res+0(FP), R12
+	MOVQ s27-224(SP), AX
+	MOVQ s28-232(SP), DX
+	MOVQ s29-240(SP), CX
+	MOVQ s30-248(SP), BX
+	MOVQ s31-256(SP), SI
+	MOVQ s32-264(SP), DI
+	MOVQ s33-272(SP), R8
+	MOVQ s34-280(SP), R9
+	MOVQ s35-288(SP), R10
+	MOVQ s36-296(SP), R11
+	MOVQ AX, 0(R12)
+	MOVQ DX, 8(R12)
+	MOVQ CX, 16(R12)
+	MOVQ BX, 24(R12)
+	MOVQ SI, 32(R12)
+	MOVQ DI, 40(R12)
+	MOVQ R8, 48(R12)
+	MOVQ R9, 56(R12)
+	MOVQ R10, 64(R12)
+	MOVQ R11, 72(R12)
+	RET
+
+l9:
+	MOVQ res+0(FP), R12
+	MOVQ $0, 0(R12)
+	MOVQ $0, 8(R12)
+	MOVQ $0, 16(R12)
+	MOVQ $0, 24(R12)
+	MOVQ $0, 32(R12)
+	MOVQ $0, 40(R12)
+	MOVQ $0, 48(R12)
+	MOVQ $0, 56(R12)
+	MOVQ $0, 64(R12)
+	MOVQ $0, 72(R12)
+	RET

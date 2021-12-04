@@ -41,11 +41,12 @@ const (
 	BW6_764
 	BW6_633
 	BW6_672
+	CP8_632
 )
 
 // Implemented return the list of curves fully implemented in gnark-crypto
 func Implemented() []ID {
-	return []ID{BN254, BLS12_377, BLS12_379, BLS12_381, BW6_761, BLS24_315, BW6_764, BW6_633, BW6_672}
+	return []ID{BN254, BLS12_377, BLS12_379, BLS12_381, BW6_761, BLS24_315, BW6_764, BW6_633, BW6_672, CP8_632}
 }
 
 func (id ID) String() string {
@@ -68,6 +69,8 @@ func (id ID) String() string {
 		return "bw6_672"
 	case BLS24_315:
 		return "bls24_315"
+	case CP8_632:
+		return "cp8_632"
 	default:
 		panic("unimplemented ecc ID")
 	}
