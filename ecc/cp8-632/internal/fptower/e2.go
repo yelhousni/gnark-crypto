@@ -233,7 +233,7 @@ func (z *E2) MulByNonResidue(x *E2) *E2 {
 func (z *E2) norm(x *fp.Element) {
 	var tmp fp.Element
 	tmp.Square(&z.A1).Double(&tmp)
-	x.Square(&z.A0).Add(x, &tmp)
+	x.Square(&z.A0).Sub(x, &tmp)
 }
 
 // Legendre returns the Legendre symbol of z
@@ -254,7 +254,7 @@ func (z *E2) Sqrt(x *E2) *E2 {
 	var b, c, d, e, f, x0 E2
 	var _b, o fp.Element
 
-	// c must be a non square (works for p=1 mod 12 hence 1 mod 4, only bls377 has such a p currently)
+	// c must be a non square (works for p=1 mod 12 hence 1 mod 4)
 	c.A1.SetOne()
 
 	q := fp.Modulus()

@@ -746,10 +746,11 @@ func (p *G1Affine) SetBytes(buf []byte) (int, error) {
 	// read X coordinate
 	p.X.SetBytes(bufX[:fp.Bytes])
 
-	var YSquared, Y fp.Element
+	var aX, YSquared, Y fp.Element
 
 	YSquared.Square(&p.X).Mul(&YSquared, &p.X)
-	YSquared.Add(&YSquared, &aCurveCoeff)
+	aX.Mul(&p.X, &aCurveCoeff)
+	YSquared.Add(&YSquared, &aX)
 	if Y.Sqrt(&YSquared) == nil {
 		return 0, errors.New("invalid compressed coordinate: square root doesn't exist")
 	}
@@ -784,10 +785,11 @@ func (p *G1Affine) unsafeComputeY() error {
 	mData := byte(p.Y[0])
 
 	// we have a compressed coordinate, we need to solve the curve equation to compute Y
-	var YSquared, Y fp.Element
+	var aX, YSquared, Y fp.Element
 
 	YSquared.Square(&p.X).Mul(&YSquared, &p.X)
-	YSquared.Add(&YSquared, &aCurveCoeff)
+	aX.Mul(&p.X, &aCurveCoeff)
+	YSquared.Add(&YSquared, &aX)
 	if Y.Sqrt(&YSquared) == nil {
 		return errors.New("invalid compressed coordinate: square root doesn't exist")
 	}
@@ -950,7 +952,7 @@ func (p *G2Affine) RawBytes() (res [SizeOfG2AffineUncompressed]byte) {
 	binary.BigEndian.PutUint64(res[248:256], tmp[8])
 	binary.BigEndian.PutUint64(res[240:248], tmp[9])
 
-    tmp = p.Y.A1
+	tmp = p.Y.A1
 	tmp.FromMont()
 	binary.BigEndian.PutUint64(res[232:240], tmp[0])
 	binary.BigEndian.PutUint64(res[224:232], tmp[1])
@@ -963,7 +965,7 @@ func (p *G2Affine) RawBytes() (res [SizeOfG2AffineUncompressed]byte) {
 	binary.BigEndian.PutUint64(res[168:176], tmp[8])
 	binary.BigEndian.PutUint64(res[160:168], tmp[9])
 
-    // we store X  and mask the most significant word with our metadata mask
+	// we store X  and mask the most significant word with our metadata mask
 	tmp = p.X.A0
 	tmp.FromMont()
 	binary.BigEndian.PutUint64(res[152:160], tmp[0])
@@ -989,7 +991,6 @@ func (p *G2Affine) RawBytes() (res [SizeOfG2AffineUncompressed]byte) {
 	binary.BigEndian.PutUint64(res[16:24], tmp[7])
 	binary.BigEndian.PutUint64(res[8:16], tmp[8])
 	binary.BigEndian.PutUint64(res[0:8], tmp[9])
-
 
 	res[0] |= mUncompressed
 
@@ -1061,10 +1062,11 @@ func (p *G2Affine) SetBytes(buf []byte) (int, error) {
 	p.X.A1.SetBytes(bufX[:fp.Bytes])
 	p.X.A0.SetBytes(buf[fp.Bytes : fp.Bytes*2])
 
-	var YSquared, Y fptower.E2
+	var aX, YSquared, Y fptower.E2
 
 	YSquared.Square(&p.X).Mul(&YSquared, &p.X)
-	YSquared.Add(&YSquared, &aTwistCurveCoeff)
+	aX.Mul(&p.X, &aTwistCurveCoeff)
+	YSquared.Add(&YSquared, &aX)
 	if YSquared.Legendre() == -1 {
 		return 0, errors.New("invalid compressed coordinate: square root doesn't exist")
 	}
@@ -1100,10 +1102,11 @@ func (p *G2Affine) unsafeComputeY() error {
 	mData := byte(p.Y.A0[0])
 
 	// we have a compressed coordinate, we need to solve the curve equation to compute Y
-	var YSquared, Y fptower.E2
+	var aX, YSquared, Y fptower.E2
 
 	YSquared.Square(&p.X).Mul(&YSquared, &p.X)
-	YSquared.Add(&YSquared, &aTwistCurveCoeff)
+	aX.Mul(&p.X, &aTwistCurveCoeff)
+	YSquared.Add(&YSquared, &aX)
 	if YSquared.Legendre() == -1 {
 		return errors.New("invalid compressed coordinate: square root doesn't exist")
 	}

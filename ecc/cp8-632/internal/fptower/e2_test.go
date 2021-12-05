@@ -147,6 +147,24 @@ func TestE2ReceiverIsOperand(t *testing.T) {
 		genfp,
 	))
 
+	properties.Property("[CP8-632] Having the receiver as operand (Sqrt) should output the same result", prop.ForAll(
+		func(a *E2) bool {
+			var b, c, d, s E2
+
+			s.Square(a)
+			a.Set(&s)
+			b.Set(&s)
+
+			a.Sqrt(a)
+			b.Sqrt(&b)
+
+			c.Square(a)
+			d.Square(&b)
+			return c.Equal(&d)
+		},
+		genA,
+	))
+
 	properties.TestingRun(t, gopter.ConsoleReporter(false))
 
 }
@@ -247,6 +265,18 @@ func TestE2Ops(t *testing.T) {
 			e.Double(&a.A0)
 			f.Double(&a.A1)
 			return c.A1.IsZero() && d.A0.IsZero() && e.Equal(&c.A0) && f.Equal(&d.A1)
+		},
+		genA,
+	))
+
+	properties.Property("[CP8-632] square(sqrt) should leave an element invariant", prop.ForAll(
+		func(a *E2) bool {
+			var b, c, d, e E2
+			b.Square(a)
+			c.Sqrt(&b)
+			d.Square(&c)
+			e.Neg(a)
+			return (c.Equal(a) || c.Equal(&e)) && d.Equal(&b)
 		},
 		genA,
 	))

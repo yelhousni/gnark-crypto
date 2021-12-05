@@ -17,11 +17,9 @@
 package cp8632
 
 import (
-	// "math"
 	"math/big"
 	"runtime"
 
-	// "github.com/consensys/gnark-crypto/ecc"
 	"github.com/consensys/gnark-crypto/ecc/cp8-632/fr"
 	"github.com/consensys/gnark-crypto/ecc/cp8-632/internal/fptower"
 	"github.com/consensys/gnark-crypto/internal/parallel"
@@ -60,7 +58,6 @@ func (p *G2Affine) Set(a *G2Affine) *G2Affine {
 func (p *G2Affine) ScalarMultiplication(a *G2Affine, s *big.Int) *G2Affine {
 	var _p G2Jac
 	_p.FromAffine(a)
-	// _p.mulGLV(&_p, s)
 	_p.mulWindowed(&_p, s)
 	p.FromJacobian(&_p)
 	return p
@@ -188,7 +185,7 @@ func (p *G2Jac) SubAssign(a *G2Jac) *G2Jac {
 }
 
 // AddAssign point addition in montgomery form
-// https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#addition-add-2007-bl
+// https://hyperelliptic.org/EFD/g2p/auto-shortw-jacobian.html#addition-add-2007-bl
 func (p *G2Jac) AddAssign(a *G2Jac) *G2Jac {
 
 	// p is infinity, return a
@@ -241,7 +238,7 @@ func (p *G2Jac) AddAssign(a *G2Jac) *G2Jac {
 }
 
 // AddMixed point addition
-// http://www.hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-0.html#addition-madd-2007-bl
+// https://hyperelliptic.org/EFD/g2p/auto-shortw-jacobian.html#addition-madd-2007-bl
 func (p *G2Jac) AddMixed(a *G2Affine) *G2Jac {
 
 	//if a is infinity return p
@@ -290,7 +287,7 @@ func (p *G2Jac) AddMixed(a *G2Affine) *G2Jac {
 }
 
 // Double doubles a point in Jacobian coordinates
-// https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#doubling-dbl-2007-bl
+// https://hyperelliptic.org/EFD/g2p/auto-shortw-jacobian-3.html#doubling-dbl-2007-bl
 func (p *G2Jac) Double(q *G2Jac) *G2Jac {
 	p.Set(q)
 	p.DoubleAssign()
@@ -298,21 +295,25 @@ func (p *G2Jac) Double(q *G2Jac) *G2Jac {
 }
 
 // DoubleAssign doubles a point in Jacobian coordinates
-// https://hyperelliptic.org/EFD/g1p/auto-shortw-jacobian-3.html#doubling-dbl-2007-bl
+// https://hyperelliptic.org/EFD/g2p/auto-shortw-jacobian-3.html#doubling-dbl-2007-bl
 func (p *G2Jac) DoubleAssign() *G2Jac {
 
-	var XX, YY, YYYY, ZZ, S, M, T fptower.E2
+	var XX, YY, YYYY, ZZ, aZZZZ, S, M, T fptower.E2
 
 	XX.Square(&p.X)
 	YY.Square(&p.Y)
 	YYYY.Square(&YY)
 	ZZ.Square(&p.Z)
-	S.Add(&p.X, &YY)
-	S.Square(&S).
+	S.Add(&p.X, &YY).
+		Square(&S).
 		Sub(&S, &XX).
 		Sub(&S, &YYYY).
 		Double(&S)
-	M.Double(&XX).Add(&M, &XX)
+	M.Double(&XX).
+		Add(&M, &XX)
+	aZZZZ.Square(&ZZ).
+		Mul(&aZZZZ, &aTwistCurveCoeff)
+	M.Add(&M, &aZZZZ)
 	p.Z.Add(&p.Z, &p.Y).
 		Square(&p.Z).
 		Sub(&p.Z, &YY).
@@ -333,7 +334,6 @@ func (p *G2Jac) DoubleAssign() *G2Jac {
 // see https://www.iacr.org/archive/crypto2001/21390189.pdf
 func (p *G2Jac) ScalarMultiplication(a *G2Jac, s *big.Int) *G2Jac {
 	return p.mulWindowed(a, s)
-	// return p.mulGLV(a, s)
 }
 
 func (p *G2Jac) String() string {
@@ -360,25 +360,25 @@ func (p *G2Jac) FromAffine(Q *G2Affine) *G2Jac {
 }
 
 // IsOnCurve returns true if p in on the curve
+// y^2 = x^3 + a'*x
+// Y^2 = X^3 + a'*X*Z^4
 func (p *G2Jac) IsOnCurve() bool {
 	var left, right, tmp fptower.E2
 	left.Square(&p.Y)
 	right.Square(&p.X).Mul(&right, &p.X)
 	tmp.Square(&p.Z).
 		Square(&tmp).
-		Mul(&tmp, &p.Z).
-		Mul(&tmp, &p.Z).
+		Mul(&tmp, &p.X).
 		Mul(&tmp, &aTwistCurveCoeff)
 	right.Add(&right, &tmp)
 	return left.Equal(&right)
 }
 
-// TODO: optimize
+// IsInSubGroup returns true if p is on the r-torsion, false otherwise.
 func (p *G2Jac) IsInSubGroup() bool {
 
-    var res G2Jac
-    res.ScalarMultiplication(p, fr.Modulus())
-
+	var res G2Jac
+	res.ScalarMultiplication(p, fr.Modulus())
 	return res.IsOnCurve() && res.Z.IsZero()
 }
 
@@ -412,90 +412,6 @@ func (p *G2Jac) mulWindowed(a *G2Jac, s *big.Int) *G2Jac {
 
 }
 
-// psi(p) = u o frob o u**-1 where u:E'->E iso from the twist to E
-func (p *G2Jac) psi(a *G2Jac) *G2Jac {
-	p.Set(a)
-	p.X.Conjugate(&p.X).Mul(&p.X, &endo.u)
-	p.Y.Conjugate(&p.Y).Mul(&p.Y, &endo.v)
-	p.Z.Conjugate(&p.Z)
-	return p
-}
-
-/*
-// phi assigns p to phi(a) where phi: (x,y)->(ux,y), and returns p
-func (p *G2Jac) phi(a *G2Jac) *G2Jac {
-	p.Set(a)
-	p.X.MulByElement(&p.X, &thirdRootOneG2)
-	return p
-}
-
-// mulGLV performs scalar multiplication using GLV
-// see https://www.iacr.org/archive/crypto2001/21390189.pdf
-func (p *G2Jac) mulGLV(a *G2Jac, s *big.Int) *G2Jac {
-
-	var table [15]G2Jac
-	var zero big.Int
-	var res G2Jac
-	var k1, k2 fr.Element
-
-	res.Set(&g2Infinity)
-
-	// table[b3b2b1b0-1] = b3b2*phi(a) + b1b0*a
-	table[0].Set(a)
-	table[3].phi(a)
-
-	// split the scalar, modifies +-a, phi(a) accordingly
-	k := ecc.SplitScalar(s, &glvBasis)
-
-	if k[0].Cmp(&zero) == -1 {
-		k[0].Neg(&k[0])
-		table[0].Neg(&table[0])
-	}
-	if k[1].Cmp(&zero) == -1 {
-		k[1].Neg(&k[1])
-		table[3].Neg(&table[3])
-	}
-
-	// precompute table (2 bits sliding window)
-	// table[b3b2b1b0-1] = b3b2*phi(a) + b1b0*a if b3b2b1b0 != 0
-	table[1].Double(&table[0])
-	table[2].Set(&table[1]).AddAssign(&table[0])
-	table[4].Set(&table[3]).AddAssign(&table[0])
-	table[5].Set(&table[3]).AddAssign(&table[1])
-	table[6].Set(&table[3]).AddAssign(&table[2])
-	table[7].Double(&table[3])
-	table[8].Set(&table[7]).AddAssign(&table[0])
-	table[9].Set(&table[7]).AddAssign(&table[1])
-	table[10].Set(&table[7]).AddAssign(&table[2])
-	table[11].Set(&table[7]).AddAssign(&table[3])
-	table[12].Set(&table[11]).AddAssign(&table[0])
-	table[13].Set(&table[11]).AddAssign(&table[1])
-	table[14].Set(&table[11]).AddAssign(&table[2])
-
-	// bounds on the lattice base vectors guarantee that k1, k2 are len(r)/2 bits long max
-	k1.SetBigInt(&k[0]).FromMont()
-	k2.SetBigInt(&k[1]).FromMont()
-
-	// loop starts from len(k1)/2 due to the bounds
-	for i := int(math.Ceil(fr.Limbs/2. - 1)); i >= 0; i-- {
-		mask := uint64(3) << 62
-		for j := 0; j < 32; j++ {
-			res.Double(&res).Double(&res)
-			b1 := (k1[i] & mask) >> (62 - 2*j)
-			b2 := (k2[i] & mask) >> (62 - 2*j)
-			if b1|b2 != 0 {
-				s := (b2<<2 | b1)
-				res.AddAssign(&table[s-1])
-			}
-			mask = mask >> 2
-		}
-	}
-
-	p.Set(&res)
-	return p
-}
-*/
-
 // ClearCofactor maps a point in curve to r-torsion
 func (p *G2Affine) ClearCofactor(a *G2Affine) *G2Affine {
 	var _p G2Jac
@@ -505,11 +421,11 @@ func (p *G2Affine) ClearCofactor(a *G2Affine) *G2Affine {
 	return p
 }
 
-// TODO: optimize
-// ClearCofactor maps a point in curve to r-torsion
+// ClearCofactor maps a point in E(Fp) to E(Fp)[r]
 func (p *G2Jac) ClearCofactor(a *G2Jac) *G2Jac {
-    p.ScalarMultiplication(a, &cofactor)
-    return p
+
+	p.ScalarMultiplication(a, &cofactorTwist)
+	return p
 }
 
 // -------------------------------------------------------------------------------------------------
@@ -563,7 +479,7 @@ func (p *G2Jac) unsafeFromJacExtended(Q *g2JacExtended) *G2Jac {
 }
 
 // add point in ZZ coords
-// https://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#addition-add-2008-s
+// https://www.hyperelliptic.org/EFD/g2p/auto-shortw-xyzz.html#addition-add-2008-s
 func (p *g2JacExtended) add(q *g2JacExtended) *g2JacExtended {
 	//if q is infinity return p
 	if q.ZZ.IsZero() {
@@ -623,7 +539,7 @@ func (p *g2JacExtended) add(q *g2JacExtended) *g2JacExtended {
 }
 
 // double point in ZZ coords
-// http://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#doubling-dbl-2008-s-1
+// http://www.hyperelliptic.org/EFD/g2p/auto-shortw-xyzz.html#doubling-dbl-2008-s-1
 func (p *g2JacExtended) double(q *g2JacExtended) *g2JacExtended {
 	var U, V, W, S, XX, M fptower.E2
 
@@ -649,7 +565,7 @@ func (p *g2JacExtended) double(q *g2JacExtended) *g2JacExtended {
 }
 
 // subMixed same as addMixed, but will negate a.Y
-// http://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#addition-madd-2008-s
+// http://www.hyperelliptic.org/EFD/g2p/auto-shortw-xyzz.html#addition-madd-2008-s
 func (p *g2JacExtended) subMixed(a *G2Affine) *g2JacExtended {
 
 	//if a is infinity return p
@@ -705,7 +621,7 @@ func (p *g2JacExtended) subMixed(a *G2Affine) *g2JacExtended {
 }
 
 // addMixed
-// http://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#addition-madd-2008-s
+// http://www.hyperelliptic.org/EFD/g2p/auto-shortw-xyzz.html#addition-madd-2008-s
 func (p *g2JacExtended) addMixed(a *G2Affine) *g2JacExtended {
 
 	//if a is infinity return p
@@ -787,7 +703,7 @@ func (p *g2JacExtended) doubleNegMixed(q *G2Affine) *g2JacExtended {
 }
 
 // doubleMixed point in ZZ coords
-// http://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#doubling-dbl-2008-s-1
+// http://www.hyperelliptic.org/EFD/g2p/auto-shortw-xyzz.html#doubling-dbl-2008-s-1
 func (p *g2JacExtended) doubleMixed(q *G2Affine) *g2JacExtended {
 
 	var U, V, W, S, XX, M, S2, L fptower.E2
@@ -822,6 +738,13 @@ func (p *g2Proj) Set(a *g2Proj) *g2Proj {
 	return p
 }
 
+// Neg computes -G
+func (p *g2Proj) Neg(a *g2Proj) *g2Proj {
+	*p = *a
+	p.y.Neg(&a.y)
+	return p
+}
+
 // FromJacobian converts a point from Jacobian to projective coordinates
 func (p *g2Proj) FromJacobian(Q *G2Jac) *g2Proj {
 	var buf fptower.E2
@@ -846,6 +769,101 @@ func (p *g2Proj) FromAffine(Q *G2Affine) *g2Proj {
 	p.x.Set(&Q.X)
 	p.y.Set(&Q.Y)
 	return p
+}
+
+// BatchProjectiveToAffineG2 converts points in Projective coordinates to Affine coordinates
+// performing a single field inversion (Montgomery batch inversion trick)
+// result must be allocated with len(result) == len(points)
+func BatchProjectiveToAffineG2(points []g2Proj, result []G2Affine) {
+	zeroes := make([]bool, len(points))
+	var accumulator fptower.E2
+	accumulator.SetOne()
+
+	// batch invert all points[].Z coordinates with Montgomery batch inversion trick
+	// (stores points[].Z^-1 in result[i].X to avoid allocating a slice of fr.Elements)
+	for i := 0; i < len(points); i++ {
+		if points[i].z.IsZero() {
+			zeroes[i] = true
+			continue
+		}
+		result[i].X = accumulator
+		accumulator.Mul(&accumulator, &points[i].z)
+	}
+
+	var accInverse fptower.E2
+	accInverse.Inverse(&accumulator)
+
+	for i := len(points) - 1; i >= 0; i-- {
+		if zeroes[i] {
+			// do nothing, X and Y are zeroes in affine.
+			continue
+		}
+		result[i].X.Mul(&result[i].X, &accInverse)
+		accInverse.Mul(&accInverse, &points[i].z)
+	}
+
+	// batch convert to affine.
+	parallel.Execute(len(points), func(start, end int) {
+		for i := start; i < end; i++ {
+			if zeroes[i] {
+				// do nothing, X and Y are zeroes in affine.
+				continue
+			}
+			var a fptower.E2
+			a = result[i].X
+			result[i].X.Mul(&points[i].x, &a)
+			result[i].Y.Mul(&points[i].y, &a)
+		}
+	})
+}
+
+// BatchJacobianToAffineG2 converts points in Jacobian coordinates to Affine coordinates
+// performing a single field inversion (Montgomery batch inversion trick)
+// result must be allocated with len(result) == len(points)
+func BatchJacobianToAffineG2(points []G2Jac, result []G2Affine) {
+	zeroes := make([]bool, len(points))
+	var accumulator fptower.E2
+	accumulator.SetOne()
+
+	// batch invert all points[].Z coordinates with Montgomery batch inversion trick
+	// (stores points[].Z^-1 in result[i].X to avoid allocating a slice of fr.Elements)
+	for i := 0; i < len(points); i++ {
+		if points[i].Z.IsZero() {
+			zeroes[i] = true
+			continue
+		}
+		result[i].X = accumulator
+		accumulator.Mul(&accumulator, &points[i].Z)
+	}
+
+	var accInverse fptower.E2
+	accInverse.Inverse(&accumulator)
+
+	for i := len(points) - 1; i >= 0; i-- {
+		if zeroes[i] {
+			// do nothing, X and Y are zeroes in affine.
+			continue
+		}
+		result[i].X.Mul(&result[i].X, &accInverse)
+		accInverse.Mul(&accInverse, &points[i].Z)
+	}
+
+	// batch convert to affine.
+	parallel.Execute(len(points), func(start, end int) {
+		for i := start; i < end; i++ {
+			if zeroes[i] {
+				// do nothing, X and Y are zeroes in affine.
+				continue
+			}
+			var a, b fptower.E2
+			a = result[i].X
+			b.Square(&a)
+			result[i].X.Mul(&points[i].X, &b)
+			result[i].Y.Mul(&points[i].Y, &b).
+				Mul(&result[i].Y, &a)
+		}
+	})
+
 }
 
 // BatchScalarMultiplicationG2 multiplies the same base (generator) by all scalars
@@ -908,7 +926,10 @@ func BatchScalarMultiplicationG2(base *G2Affine, scalars []fr.Element) []G2Affin
 		}
 		selectors[chunk] = d
 	}
-	toReturn := make([]G2Affine, len(scalars))
+	// convert our base exp table into affine to use AddMixed
+	baseTableAff := make([]G2Affine, (1 << (c - 1)))
+	BatchJacobianToAffineG2(baseTable, baseTableAff)
+	toReturn := make([]G2Jac, len(scalars))
 
 	// for each digit, take value in the base table, double it c time, voila.
 	parallel.Execute(len(pScalars), func(start, end int) {
@@ -935,19 +956,21 @@ func BatchScalarMultiplicationG2(base *G2Affine, scalars []fr.Element) []G2Affin
 				// if msbWindow bit is set, we need to substract
 				if bits&msbWindow == 0 {
 					// add
-					p.AddAssign(&baseTable[bits-1])
+					p.AddMixed(&baseTableAff[bits-1])
 				} else {
 					// sub
-					t := baseTable[bits & ^msbWindow]
+					t := baseTableAff[bits & ^msbWindow]
 					t.Neg(&t)
-					p.AddAssign(&t)
+					p.AddMixed(&t)
 				}
 			}
 
 			// set our result point
-			toReturn[i].FromJacobian(&p)
+			toReturn[i] = p
 
 		}
 	})
-	return toReturn
+	toReturnAff := make([]G2Affine, len(scalars))
+	BatchJacobianToAffineG2(toReturn, toReturnAff)
+	return toReturnAff
 }
