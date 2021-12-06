@@ -40,11 +40,6 @@ type g2JacExtended struct {
 	X, Y, ZZ, ZZZ fptower.E2
 }
 
-// g2Proj point in projective coordinates
-type g2Proj struct {
-	x, y, z fptower.E2
-}
-
 // -------------------------------------------------------------------------------------------------
 // Affine
 
@@ -727,94 +722,6 @@ func (p *g2JacExtended) doubleMixed(q *G2Affine) *g2JacExtended {
 	p.ZZZ.Set(&W)
 
 	return p
-}
-
-// -------------------------------------------------------------------------------------------------
-// Homogenous projective
-
-// Set sets p to the provided point
-func (p *g2Proj) Set(a *g2Proj) *g2Proj {
-	p.x, p.y, p.z = a.x, a.y, a.z
-	return p
-}
-
-// Neg computes -G
-func (p *g2Proj) Neg(a *g2Proj) *g2Proj {
-	*p = *a
-	p.y.Neg(&a.y)
-	return p
-}
-
-// FromJacobian converts a point from Jacobian to projective coordinates
-func (p *g2Proj) FromJacobian(Q *G2Jac) *g2Proj {
-	var buf fptower.E2
-	buf.Square(&Q.Z)
-
-	p.x.Mul(&Q.X, &Q.Z)
-	p.y.Set(&Q.Y)
-	p.z.Mul(&Q.Z, &buf)
-
-	return p
-}
-
-// FromAffine sets p = Q, p in homogenous projective, Q in affine
-func (p *g2Proj) FromAffine(Q *G2Affine) *g2Proj {
-	if Q.X.IsZero() && Q.Y.IsZero() {
-		p.z.SetZero()
-		p.x.SetOne()
-		p.y.SetOne()
-		return p
-	}
-	p.z.SetOne()
-	p.x.Set(&Q.X)
-	p.y.Set(&Q.Y)
-	return p
-}
-
-// BatchProjectiveToAffineG2 converts points in Projective coordinates to Affine coordinates
-// performing a single field inversion (Montgomery batch inversion trick)
-// result must be allocated with len(result) == len(points)
-func BatchProjectiveToAffineG2(points []g2Proj, result []G2Affine) {
-	zeroes := make([]bool, len(points))
-	var accumulator fptower.E2
-	accumulator.SetOne()
-
-	// batch invert all points[].Z coordinates with Montgomery batch inversion trick
-	// (stores points[].Z^-1 in result[i].X to avoid allocating a slice of fr.Elements)
-	for i := 0; i < len(points); i++ {
-		if points[i].z.IsZero() {
-			zeroes[i] = true
-			continue
-		}
-		result[i].X = accumulator
-		accumulator.Mul(&accumulator, &points[i].z)
-	}
-
-	var accInverse fptower.E2
-	accInverse.Inverse(&accumulator)
-
-	for i := len(points) - 1; i >= 0; i-- {
-		if zeroes[i] {
-			// do nothing, X and Y are zeroes in affine.
-			continue
-		}
-		result[i].X.Mul(&result[i].X, &accInverse)
-		accInverse.Mul(&accInverse, &points[i].z)
-	}
-
-	// batch convert to affine.
-	parallel.Execute(len(points), func(start, end int) {
-		for i := start; i < end; i++ {
-			if zeroes[i] {
-				// do nothing, X and Y are zeroes in affine.
-				continue
-			}
-			var a fptower.E2
-			a = result[i].X
-			result[i].X.Mul(&points[i].x, &a)
-			result[i].Y.Mul(&points[i].y, &a)
-		}
-	})
 }
 
 // BatchJacobianToAffineG2 converts points in Jacobian coordinates to Affine coordinates

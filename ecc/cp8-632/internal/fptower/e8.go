@@ -18,6 +18,7 @@ import (
 	"math/big"
 
 	"github.com/consensys/gnark-crypto/ecc/cp8-632/fp"
+	"github.com/consensys/gnark-crypto/ecc/cp8-632/fr"
 )
 
 // E8 is a degree two finite field extension of fp4
@@ -239,6 +240,28 @@ func (z *E8) Conjugate(x *E8) *E8 {
 	z.C0 = x.C0
 	z.C1.Neg(&x.C1)
 	return z
+}
+
+// MulBy023 multiplication by sparse element (c0,0,c2,c3)
+func (z *E8) MulBy023(c0, c2, c3 *E2) *E8 {
+
+    var f E8
+    f.C0.B0.Set(c0)
+    f.C1.B0.Set(c2)
+    f.C1.B1.Set(c3)
+    z.Mul(z, &f)
+
+    return z
+}
+
+// IsInSubGroup ensures GT/E8 is in correct sugroup
+func (z *E8) IsInSubGroup() bool {
+	var x, one E8
+    one.SetOne()
+    _r := fr.Modulus()
+    x.Exp(z, *_r)
+
+    return x.Equal(&one)
 }
 
 // SizeOfGT represents the size in bytes that a GT element need in binary form
