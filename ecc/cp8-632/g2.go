@@ -40,6 +40,11 @@ type g2JacExtended struct {
 	X, Y, ZZ, ZZZ fptower.E2
 }
 
+// g2W12 point in weight-(1,2) coordinates
+type g2W12 struct {
+	x, y, z fptower.E2
+}
+
 // -------------------------------------------------------------------------------------------------
 // Affine
 
@@ -880,4 +885,47 @@ func BatchScalarMultiplicationG2(base *G2Affine, scalars []fr.Element) []G2Affin
 	toReturnAff := make([]G2Affine, len(scalars))
 	BatchJacobianToAffineG2(toReturn, toReturnAff)
 	return toReturnAff
+}
+
+// -------------------------------------------------------------------------------------------------
+// W12 coordinates
+
+// Set sets p to the provided point
+func (p *g2W12) Set(a *g2W12) *g2W12 {
+	p.x, p.y, p.z = a.x, a.y, a.z
+	return p
+}
+
+// Neg computes -G
+func (p *g2W12) Neg(a *g2W12) *g2W12 {
+	*p = *a
+	p.y.Neg(&a.y)
+	return p
+}
+
+// jac: x*Z**2=X, y*Z**3=Y
+// w12: x*Z=X, y*Z**2=Y
+// proj: x*Z=X, y*Z=Y
+// FromJacobian converts a point from Jacobian to W12 coordinates
+func (p *g2W12) FromJac(Q *G2Jac) *g2W12 {
+
+	p.x.Set(&Q.X)
+	p.y.Set(&Q.Y)
+	p.z.Square(&Q.Z)
+
+	return p
+}
+
+// FromAffine sets p = Q, p in W12 coordinates, Q in affine
+func (p *g2W12) FromAffine(Q *G2Affine) *g2W12 {
+	if Q.X.IsZero() && Q.Y.IsZero() {
+		p.z.SetZero()
+		p.x.SetOne()
+		p.y.SetOne()
+		return p
+	}
+	p.z.SetOne()
+	p.x.Set(&Q.X)
+	p.y.Set(&Q.Y)
+	return p
 }

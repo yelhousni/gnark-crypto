@@ -40,7 +40,7 @@ type g1JacExtended struct {
 	X, Y, ZZ, ZZZ fp.Element
 }
 
-// g1W12 point in projective coordinates
+// g1W12 point in W12 coordinates
 type g1W12 struct {
 	x, y, z fp.Element
 }
@@ -749,7 +749,7 @@ func (p *g1W12) Neg(a *g1W12) *g1W12 {
 // w12: x*Z=X, y*Z**2=Y
 // proj: x*Z=X, y*Z=Y
 // FromJacobian converts a point from Jacobian to W12 coordinates
-func (p *g1W12) FromW12(Q *G1Jac) *g1W12 {
+func (p *g1W12) FromJac(Q *G1Jac) *g1W12 {
 
 	p.x.Set(&Q.X)
 	p.y.Set(&Q.Y)

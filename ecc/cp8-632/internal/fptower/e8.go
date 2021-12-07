@@ -251,6 +251,58 @@ func (z *E8) MulBy023(c0, c2, c3 *E2) *E8 {
     f.C1.B1.Set(c3)
     z.Mul(z, &f)
 
+    /*
+    var tmp, c0z0, c2z2, c3z3, z0, z1, z2, z3 E2
+
+    c0z0.Mul(c0, &z.C0.B0)
+    c2z2.Mul(c2, &z.C1.B0)
+    c3z3.Mul(c3, &z.C1.B1)
+
+    z0.Mul(c3, &z.C0.B1).
+        Add(&z0, &c2z2).
+        MulByNonResidue(&z0).
+        Add(&z0, &c0z0)
+
+    tmp.Add(c2, c3)
+
+    z1.Add(&z.C1.B0, &z.C1.B1).
+        Mul(&z1, &tmp).
+        Sub(&z1, &c2z2).
+        Sub(&z1, &c3z3).
+        MulByNonResidue(&z1)
+
+    tmp.Mul(c0, &z.C0.B1)
+
+    z1.Add(&z1, &tmp)
+
+    tmp.Add(c0, c2)
+
+    z2.Add(&z.C0.B0, &z.C1.B0).
+        Mul(&z2, &tmp).
+        Sub(&z2, &c0z0).
+        Sub(&z2, &c2z2)
+
+    tmp.MulByNonResidue(&c3z3)
+
+    z2.Add(&z2, &tmp)
+
+    tmp.Add(c0, c3)
+
+    z3.Add(&z.C0.B0, &z.C1.B1).
+        Mul(&z3, &tmp).
+        Sub(&z3, &c0z0).
+        Sub(&z3, &c3z3)
+
+    tmp.Mul(c2, &z.C0.B1)
+
+    z3.Add(&z3, &tmp)
+
+    z.C0.B0.Set(&z0)
+    z.C0.B1.Set(&z1)
+    z.C1.B0.Set(&z2)
+    z.C1.B1.Set(&z3)
+    */
+
     return z
 }
 

@@ -17,7 +17,6 @@ package cp8632
 import (
 	"errors"
 
-	"github.com/consensys/gnark-crypto/ecc/cp8-632/fp"
 	"github.com/consensys/gnark-crypto/ecc/cp8-632/internal/fptower"
 )
 
@@ -67,11 +66,11 @@ func PairingCheck(P []G1Affine, Q []G2Affine) (bool, error) {
 
 // MillerLoop Miller loop
 func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
-	return MillerLoopTate(P, Q)
+	return MillerLoopAte(P, Q)
 }
 
-// MillerLoop Tate
-func MillerLoopTate(P []G1Affine, Q []G2Affine) (GT, error) {
+// MillerLoop ate
+func MillerLoopAte(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)
 	if n == 0 || n != len(Q) {
@@ -92,42 +91,42 @@ func MillerLoopTate(P []G1Affine, Q []G2Affine) (GT, error) {
 
 	n = len(p)
 
-	// projective points for P
-	pW12 := make([]g1W12, n)
-	pNeg := make([]G1Affine, n)
+	// W12 points for Q
+	qW12 := make([]g2W12, n)
+	qNeg := make([]G2Affine, n)
 	for k := 0; k < n; k++ {
-		pW12[k].FromAffine(&p[k])
-		pNeg[k].Neg(&p[k])
+		qW12[k].FromAffine(&q[k])
+		qNeg[k].Neg(&q[k])
 	}
 
-	// f_{r,P}(Q)
+	// f_{t-1,Q}(P)
 	var result GT
 	result.SetOne()
 	var l lineEvaluation
 
-	for i := 313; i >= 0; i-- {
+	for i := 316; i >= 0; i-- {
 		result.Square(&result)
 
 		for k := 0; k < n; k++ {
-			pW12[k].DoubleStep(&l)
+			qW12[k].DoubleStep(&l)
 			// line evaluation
-			l.r1.Mul(&l.r1, &q[k].Y)
-			l.r2.Mul(&l.r2, &q[k].X)
-			result.MulBy023(&l.r0, &l.r1, &l.r2)
+			l.r1.MulByElement(&l.r1, &p[k].Y)
+			l.r2.MulByElement(&l.r2, &p[k].X)
+			result.MulBy023(&l.r1, &l.r2, &l.r0)
 
-			if loopCounterTate[i] == 1 {
-				pW12[k].AddMixedStep(&l, &p[k])
+			if loopCounterAte[i] == 1 {
+				qW12[k].AddMixedStep(&l, &q[k])
 				// line evaluation
-				l.r1.Mul(&l.r1, &q[k].Y)
-				l.r2.Mul(&l.r2, &q[k].X)
-				result.MulBy023(&l.r0, &l.r1, &l.r2)
+				l.r1.MulByElement(&l.r1, &p[k].Y)
+				l.r2.MulByElement(&l.r2, &p[k].X)
+				result.MulBy023(&l.r1, &l.r2, &l.r0)
 
-			} else if loopCounterTate[i] == -1 {
-				pW12[k].AddMixedStep(&l, &pNeg[k])
+			} else if loopCounterAte[i] == -1 {
+				qW12[k].AddMixedStep(&l, &qNeg[k])
 				// line evaluation
-				l.r1.Mul(&l.r1, &q[k].Y)
-				l.r2.Mul(&l.r2, &q[k].X)
-				result.MulBy023(&l.r0, &l.r1, &l.r2)
+				l.r1.MulByElement(&l.r1, &p[k].Y)
+				l.r2.MulByElement(&l.r2, &p[k].X)
+				result.MulBy023(&l.r1, &l.r2, &l.r0)
 			}
 		}
 	}
@@ -135,38 +134,38 @@ func MillerLoopTate(P []G1Affine, Q []G2Affine) (GT, error) {
 	return result, nil
 }
 
-// For Tate pairing
 // DoubleStep doubles a point in W12 coordinates, and evaluates the line in Miller loop
 // https://eprint.iacr.org/2009/615.pdf (section 4)
-func (p *g1W12) DoubleStep(evaluations *lineEvaluation) {
+func (p *g2W12) DoubleStep(evaluations *lineEvaluation) {
 
-	var A, B, C, D, E, F fp.Element
+	var A, B, C, D, E, F fptower.E2
 	A.Square(&p.x)
 	B.Square(&p.y)
 	C.Square(&p.z)
-    D.Mul(&C, &aCurveCoeff)
+    D.Mul(&C, &aTwistCurveCoeff)
 
-    evaluations.r0.A0.Add(&p.x, &A).
-        Sub(&evaluations.r0.A0, &D).
-        Square(&evaluations.r0.A0).
-        Sub(&evaluations.r0.A0, &A)
+    evaluations.r0.Add(&p.x, &A).
+        Sub(&evaluations.r0, &D).
+        Square(&evaluations.r0).
+        Sub(&evaluations.r0, &A)
 
 	p.x.Sub(&A, &D).
 		Square(&p.x)
 
-    evaluations.r0.A0.Sub(&evaluations.r0.A0, &p.x)
+    evaluations.r0.Sub(&evaluations.r0, &p.x)
 
-    evaluations.r1.A0.Add(&p.y, &p.z).
-        Square(&evaluations.r1.A0).
-        Sub(&evaluations.r1.A0, &B).
-        Sub(&evaluations.r1.A0, &C)
+    evaluations.r1.Add(&p.y, &p.z).
+        Square(&evaluations.r1).
+        Sub(&evaluations.r1, &B).
+        Sub(&evaluations.r1, &C).
+        Double(&evaluations.r1)
 
-    evaluations.r2.A0.Double(&A).
-        Add(&evaluations.r2.A0, &A).
-        Add(&evaluations.r2.A0, &D).
-        Mul(&evaluations.r2.A0, &p.z).
-        Double(&evaluations.r2.A0).
-        Neg(&evaluations.r2.A0)
+    evaluations.r2.Double(&A).
+        Add(&evaluations.r2, &A).
+        Add(&evaluations.r2, &D).
+        Mul(&evaluations.r2, &p.z).
+        Double(&evaluations.r2).
+        Neg(&evaluations.r2)
 
 	E.Add(&A, &D).
         Square(&E).
@@ -184,12 +183,12 @@ func (p *g1W12) DoubleStep(evaluations *lineEvaluation) {
         Double(&p.z)
 }
 
-// AddMixedStep point addition in Mixed Homogenous projective and Affine coordinates
+// AddMixedStep point addition in Mixed W12 and Affine coordinates
 // https://eprint.iacr.org/2009/615.pdf (section 4)
-func (p *g1W12) AddMixedStep(evaluations *lineEvaluation, a *G1Affine) {
+func (p *g2W12) AddMixedStep(evaluations *lineEvaluation, a *G2Affine) {
 
 	// get some Element from our pool
-	var tmp, A, one, C, D, E, F, G, H, I, II, J, K fp.Element
+	var tmp, A, one, C, D, E, F, G, H, I, II, J, K fptower.E2
     one.SetOne()
     A.Square(&p.z)
     C.Add(&p.z, &one).
@@ -234,8 +233,8 @@ func (p *g1W12) AddMixedStep(evaluations *lineEvaluation, a *G1Affine) {
 
     tmp.Mul(&J, &a.Y)
 
-    evaluations.r0.A0.Mul(&I, &a.X).
-        Sub(&evaluations.r0.A0, &tmp)
-    evaluations.r1.A0.Set(&J)
-    evaluations.r2.A0.Neg(&I)
+    evaluations.r0.Mul(&I, &a.X).
+        Sub(&evaluations.r0, &tmp)
+    evaluations.r1.Set(&J)
+    evaluations.r2.Neg(&I)
 }
