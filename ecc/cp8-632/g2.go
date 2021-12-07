@@ -929,3 +929,11 @@ func (p *g2W12) FromAffine(Q *G2Affine) *g2W12 {
 	p.y.Set(&Q.Y)
 	return p
 }
+
+// phi assigns p to phi(a) where phi: (x,y)->(-x,w*y), and returns p
+func (p *G2Jac) phi(a *G2Jac) *G2Jac {
+	p.X.Neg(&a.X)
+	p.Y.MulByElement(&a.Y, &squareRootOneG2)
+	p.Z.Set(&a.Z)
+	return p
+}

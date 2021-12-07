@@ -1027,3 +1027,11 @@ func partitionScalars(scalars []fr.Element, c uint64, scalarsMont bool, nbTasks 
 	}, nbTasks)
 	return toReturn
 }
+
+// phi assigns p to phi(a) where phi: (x,y)->(-x,w*y), and returns p
+func (p *G1Jac) phi(a *G1Jac) *G1Jac {
+	p.X.Neg(&a.X)
+	p.Y.Mul(&a.Y, &squareRootOneG1)
+	p.Z.Set(&a.Z)
+	return p
+}

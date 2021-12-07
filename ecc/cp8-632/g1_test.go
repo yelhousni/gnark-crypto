@@ -28,6 +28,41 @@ import (
 	"github.com/leanovate/gopter/prop"
 )
 
+func TestG1AffineEndomorphism(t *testing.T) {
+
+	parameters := gopter.DefaultTestParameters()
+	parameters.MinSuccessfulTests = 10
+
+	properties := gopter.NewProperties(parameters)
+
+	properties.Property("[CP8-632] check that phi(P) = lambdaGLV * P", prop.ForAll(
+		func(a fp.Element) bool {
+			var res1, res2 G1Jac
+			p := fuzzJacobianG1Affine(&g1Gen, a)
+			res1.phi(&p)
+			res2.mulWindowed(&p, &lambdaGLV)
+
+			return p.IsInSubGroup() && res1.Equal(&res2)
+		},
+		GenFp(),
+	))
+
+	properties.Property("[CP8-632] check that phi^2 + 1 = 0", prop.ForAll(
+		func(a fp.Element) bool {
+			var res G1Jac
+			p := fuzzJacobianG1Affine(&g1Gen, a)
+			res.phi(&p).
+				phi(&res).
+				AddAssign(&p)
+
+			return res.Z.IsZero()
+		},
+		GenFp(),
+	))
+
+	properties.TestingRun(t, gopter.ConsoleReporter(false))
+}
+
 func TestG1AffineIsOnCurve(t *testing.T) {
 
 	parameters := gopter.DefaultTestParameters()
