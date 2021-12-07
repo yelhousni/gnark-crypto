@@ -38,7 +38,7 @@ func Pair(P []G1Affine, Q []G2Affine) (GT, error) {
 	return FinalExponentiation(&f), nil
 }
 
-// FinalExponentiation computes the final expo x**(c*(p**3-1)(p+1)(p**2-p+1)/r)
+// FinalExponentiation computes the final expo x**((p**4-1)(p**4+1)/r)
 func FinalExponentiation(z *GT, _z ...*GT) GT {
 
 	var result GT
@@ -48,7 +48,15 @@ func FinalExponentiation(z *GT, _z ...*GT) GT {
 		result.Mul(&result, e)
 	}
 
-	result.Exp(&result, finalExponent)
+	var t GT
+
+	// easy part
+	t.Conjugate(&result)
+	result.Inverse(&result)
+	result.Mul(&t, &result)
+
+	// hard part (up to permutation)
+	result.Exp(&result, finalExponentHardPart)
 
 	return result
 }
