@@ -20,6 +20,7 @@ import (
 	"math/big"
 	"runtime"
 
+	"github.com/consensys/gnark-crypto/ecc/cp8-632/fp"
 	"github.com/consensys/gnark-crypto/ecc/cp8-632/fr"
 	"github.com/consensys/gnark-crypto/ecc/cp8-632/internal/fptower"
 	"github.com/consensys/gnark-crypto/internal/parallel"
@@ -96,6 +97,19 @@ func (p *G2Affine) Equal(a *G2Affine) bool {
 func (p *G2Affine) Neg(a *G2Affine) *G2Affine {
 	p.X = a.X
 	p.Y.Neg(&a.Y)
+	return p
+}
+
+// Frobenius
+// TODO: constants in Montgomery domain
+// TODO: constants for FrobeniusSquare and FrobeniusCube
+func (p *G2Affine) Frobenius(a *G2Affine) *G2Affine {
+	var A fp.Element
+	var B fptower.E2
+	A.SetString("7222082210142983038543489141853290673369487607365755818699143171422934631093502000809863118284569724841820399334504849386714264968115151209051975759824872243113052514490696138982342231596835")
+	B.A1.SetString("3611041105071491519271744570926645336684743803682877909349571585711467315546751000404931559142284862420910199667252424693357132484057575604525987879912436121556526257245348069491171115798417")
+	p.X.Conjugate(&a.X).MulByElement(&p.X, &A)
+	p.Y.Conjugate(&a.Y).Mul(&p.Y, &B)
 	return p
 }
 

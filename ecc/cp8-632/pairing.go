@@ -56,6 +56,8 @@ func FinalExponentiation(z *GT, _z ...*GT) GT {
 	result.Mul(&t, &result)
 
 	// hard part (up to permutation)
+	// TODO: use cyclo squares
+	// TODO: use a short addition chain
 	result.Exp(&result, finalExponentHardPart)
 
 	return result
@@ -117,7 +119,7 @@ func MillerLoopOptAteSingle(p G1Affine, q G2Affine) (GT, error) {
 
 	// W12 points for Q
 	var qW12, qW12_a0, qFrobSquare g2W12
-	var qNeg, qFrob, qFrobCube G2Affine
+	var qNeg, qFrob, qFrobCube, qFrobSquareAff G2Affine
 	qW12.FromAffine(&q)
 	qNeg.Neg(&q)
 
@@ -188,9 +190,9 @@ func MillerLoopOptAteSingle(p G1Affine, q G2Affine) (GT, error) {
 
 	result[1].Frobenius(&result[1])
 
+	// TODO: reduce FromW12 calls (inverse)
 	qFrob.FromW12(&qW12)
-	qFrob.X.Conjugate(&qFrob.X)
-	qFrob.Y.Conjugate(&qFrob.Y)
+	qFrob.Frobenius(&qFrob)
 
 	qW12.FromAffine(&q)
 
@@ -226,6 +228,10 @@ func MillerLoopOptAteSingle(p G1Affine, q G2Affine) (GT, error) {
 		Conjugate(&result[2])
 
 	qFrobSquare.Neg(&qW12)
+	qFrobSquareAff.FromW12(&qFrobSquare)
+	qFrobSquareAff.Frobenius(&qFrobSquareAff).
+		Frobenius(&qFrobSquareAff)
+	qFrobSquare.FromAffine(&qFrobSquareAff)
 
 	qW12.FromAffine(&q)
 
@@ -262,8 +268,9 @@ func MillerLoopOptAteSingle(p G1Affine, q G2Affine) (GT, error) {
 
 	qW12.Neg(&qW12)
 	qFrobCube.FromW12(&qW12)
-	qFrobCube.X.Conjugate(&qFrobCube.X)
-	qFrobCube.Y.Conjugate(&qFrobCube.Y)
+	qFrobCube.Frobenius(&qFrobCube).
+		Frobenius(&qFrobCube).
+		Frobenius(&qFrobCube)
 
 	// l_{a0*Q, a1*pi(Q)}(P)
 	qW12_a0.AddMixedStep(&l1, &qFrob)

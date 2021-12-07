@@ -296,6 +296,7 @@ func (z *E8) IsInSubGroup() bool {
 }
 
 // Frobenius
+// TODO: optimize
 func (z *E8) Frobenius(x *E8) *E8 {
 
 	_p := fp.Modulus()
@@ -305,6 +306,7 @@ func (z *E8) Frobenius(x *E8) *E8 {
 }
 
 // FrobeniusSquare
+// TODO: optimize
 func (z *E8) FrobeniusSquare(x *E8) *E8 {
 
 	_p := fp.Modulus()
@@ -314,6 +316,7 @@ func (z *E8) FrobeniusSquare(x *E8) *E8 {
 }
 
 // FrobeniusCube
+// TODO: optimize
 func (z *E8) FrobeniusCube(x *E8) *E8 {
 
 	_p := fp.Modulus()
