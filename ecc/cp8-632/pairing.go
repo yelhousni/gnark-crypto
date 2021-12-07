@@ -48,7 +48,7 @@ func FinalExponentiation(z *GT, _z ...*GT) GT {
 		result.Mul(&result, e)
 	}
 
-    result.Exp(&result, finalExponent)
+	result.Exp(&result, finalExponent)
 
 	return result
 }
@@ -142,45 +142,45 @@ func (p *g2W12) DoubleStep(evaluations *lineEvaluation) {
 	A.Square(&p.x)
 	B.Square(&p.y)
 	C.Square(&p.z)
-    D.Mul(&C, &aTwistCurveCoeff)
+	D.Mul(&C, &aTwistCurveCoeff)
 
-    evaluations.r0.Add(&p.x, &A).
-        Sub(&evaluations.r0, &D).
-        Square(&evaluations.r0).
-        Sub(&evaluations.r0, &A)
+	evaluations.r0.Add(&p.x, &A).
+		Sub(&evaluations.r0, &D).
+		Square(&evaluations.r0).
+		Sub(&evaluations.r0, &A)
 
 	p.x.Sub(&A, &D).
 		Square(&p.x)
 
-    evaluations.r0.Sub(&evaluations.r0, &p.x)
+	evaluations.r0.Sub(&evaluations.r0, &p.x)
 
-    evaluations.r1.Add(&p.y, &p.z).
-        Square(&evaluations.r1).
-        Sub(&evaluations.r1, &B).
-        Sub(&evaluations.r1, &C).
-        Double(&evaluations.r1)
+	evaluations.r1.Add(&p.y, &p.z).
+		Square(&evaluations.r1).
+		Sub(&evaluations.r1, &B).
+		Sub(&evaluations.r1, &C).
+		Double(&evaluations.r1)
 
-    evaluations.r2.Double(&A).
-        Add(&evaluations.r2, &A).
-        Add(&evaluations.r2, &D).
-        Mul(&evaluations.r2, &p.z).
-        Double(&evaluations.r2).
-        Neg(&evaluations.r2)
+	evaluations.r2.Double(&A).
+		Add(&evaluations.r2, &A).
+		Add(&evaluations.r2, &D).
+		Mul(&evaluations.r2, &p.z).
+		Double(&evaluations.r2).
+		Neg(&evaluations.r2)
 
 	E.Add(&A, &D).
-        Square(&E).
-        Double(&E).
-        Sub(&E, &p.x)
-    F.Sub(&A, &D).
-        Add(&F, &p.y).
-        Square(&F).
-        Sub(&F, &B).
-        Sub(&F, &p.x)
+		Square(&E).
+		Double(&E).
+		Sub(&E, &p.x)
+	F.Sub(&A, &D).
+		Add(&F, &p.y).
+		Square(&F).
+		Sub(&F, &B).
+		Sub(&F, &p.x)
 
 	p.y.Mul(&E, &F)
 
 	p.z.Double(&B).
-        Double(&p.z)
+		Double(&p.z)
 }
 
 // AddMixedStep point addition in Mixed W12 and Affine coordinates
@@ -189,52 +189,52 @@ func (p *g2W12) AddMixedStep(evaluations *lineEvaluation, a *G2Affine) {
 
 	// get some Element from our pool
 	var tmp, A, one, C, D, E, F, G, H, I, II, J, K fptower.E2
-    one.SetOne()
-    A.Square(&p.z)
-    C.Add(&p.z, &one).
-        Square(&C).
-        Sub(&C, &A).
-        Sub(&C, &one)
-    D.Set(&p.x)
-    E.Mul(&p.z, &a.X)
-    F.Set(&p.y)
-    G.Mul(&A, &a.Y)
-    H.Sub(&D, &E)
-    I.Sub(&F, &G).
-        Double(&I)
-    II.Square(&I)
-    J.Mul(&C, &H)
-    K.Mul(&J, &H).
-        Double(&K).
-        Double(&K)
-    tmp.Add(&D, &E).
-        Mul(&tmp, &K)
+	one.SetOne()
+	A.Square(&p.z)
+	C.Add(&p.z, &one).
+		Square(&C).
+		Sub(&C, &A).
+		Sub(&C, &one)
+	D.Set(&p.x)
+	E.Mul(&p.z, &a.X)
+	F.Set(&p.y)
+	G.Mul(&A, &a.Y)
+	H.Sub(&D, &E)
+	I.Sub(&F, &G).
+		Double(&I)
+	II.Square(&I)
+	J.Mul(&C, &H)
+	K.Mul(&J, &H).
+		Double(&K).
+		Double(&K)
+	tmp.Add(&D, &E).
+		Mul(&tmp, &K)
 
-    p.x.Double(&II).
-        Sub(&p.x, &tmp)
+	p.x.Double(&II).
+		Sub(&p.x, &tmp)
 
-    p.z.Square(&J)
+	p.z.Square(&J)
 
-    tmp.Mul(&D, &K).
-        Sub(&tmp, &p.x)
+	tmp.Mul(&D, &K).
+		Sub(&tmp, &p.x)
 
-    p.y.Add(&J, &I).
-        Square(&p.y).
-        Sub(&p.y, &p.z).
-        Sub(&p.y, &II).
-        Mul(&p.y, &tmp)
+	p.y.Add(&J, &I).
+		Square(&p.y).
+		Sub(&p.y, &p.z).
+		Sub(&p.y, &II).
+		Mul(&p.y, &tmp)
 
-    tmp.Square(&K).
-        Mul(&tmp, &F)
+	tmp.Square(&K).
+		Mul(&tmp, &F)
 
-    p.y.Sub(&p.y, &tmp)
+	p.y.Sub(&p.y, &tmp)
 
-    p.z.Double(&p.z)
+	p.z.Double(&p.z)
 
-    tmp.Mul(&J, &a.Y)
+	tmp.Mul(&J, &a.Y)
 
-    evaluations.r0.Mul(&I, &a.X).
-        Sub(&evaluations.r0, &tmp)
-    evaluations.r1.Set(&J)
-    evaluations.r2.Neg(&I)
+	evaluations.r0.Mul(&I, &a.X).
+		Sub(&evaluations.r0, &tmp)
+	evaluations.r1.Set(&J)
+	evaluations.r2.Neg(&I)
 }
