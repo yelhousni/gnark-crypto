@@ -75,7 +75,7 @@ func TestPairing(t *testing.T) {
 			ag1.ScalarMultiplication(&g1GenAff, &abigint)
 			bg2.ScalarMultiplication(&g2GenAff, &bbigint)
 
-            one.SetOne()
+			one.SetOne()
 
 			res, _ = Pair([]G1Affine{g1GenAff}, []G2Affine{g2GenAff})
 			resa, _ = Pair([]G1Affine{ag1}, []G2Affine{g2GenAff})

@@ -154,7 +154,7 @@ func MillerLoopOptAteSingle(p G1Affine, q G2Affine) (GT, error) {
 
 	result[0].Conjugate(&result[0])
 
-	qW12_a0.Set(&qW12)
+	qW12_a0.Neg(&qW12)
 
 	qW12.FromAffine(&q)
 
@@ -225,7 +225,7 @@ func MillerLoopOptAteSingle(p G1Affine, q G2Affine) (GT, error) {
 	result[2].FrobeniusSquare(&result[2]).
 		Conjugate(&result[2])
 
-	qFrobSquare.Set(&qW12)
+	qFrobSquare.Neg(&qW12)
 
 	qW12.FromAffine(&q)
 
@@ -260,6 +260,7 @@ func MillerLoopOptAteSingle(p G1Affine, q G2Affine) (GT, error) {
 	result[3].FrobeniusCube(&result[3]).
 		Conjugate(&result[3])
 
+	qW12.Neg(&qW12)
 	qFrobCube.FromW12(&qW12)
 	qFrobCube.X.Conjugate(&qFrobCube.X)
 	qFrobCube.Y.Conjugate(&qFrobCube.Y)
