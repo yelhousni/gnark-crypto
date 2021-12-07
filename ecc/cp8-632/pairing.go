@@ -74,10 +74,217 @@ func PairingCheck(P []G1Affine, Q []G2Affine) (bool, error) {
 
 // MillerLoop Miller loop
 func MillerLoop(P []G1Affine, Q []G2Affine) (GT, error) {
-	return MillerLoopAte(P, Q)
+	// return MillerLoopAte(P, Q)
+	return MillerLoopOptAte(P, Q)
 }
 
-// MillerLoop ate
+func MillerLoopOptAte(P []G1Affine, Q []G2Affine) (GT, error) {
+	// check input size match
+	n := len(P)
+	if n == 0 || n != len(Q) {
+		return GT{}, errors.New("invalid inputs sizes")
+	}
+
+	// filter infinity points
+	p := make([]G1Affine, 0, n)
+	q := make([]G2Affine, 0, n)
+
+	for k := 0; k < n; k++ {
+		if P[k].IsInfinity() || Q[k].IsInfinity() {
+			continue
+		}
+		p = append(p, P[k])
+		q = append(q, Q[k])
+	}
+
+	n = len(p)
+
+	var f GT
+	f.SetOne()
+	for k := 0; k < n; k++ {
+		m, err := MillerLoopOptAteSingle(p[k], q[k])
+		if err != nil {
+			return GT{}, err
+		}
+		f.Mul(&f, &m)
+	}
+
+	return f, nil
+}
+
+// MillerLoopOptAteSingle optimal ate
+func MillerLoopOptAteSingle(p G1Affine, q G2Affine) (GT, error) {
+
+	// W12 points for Q
+	var qW12, qW12_a0, qFrobSquare g2W12
+	var qNeg, qFrob, qFrobCube G2Affine
+	qW12.FromAffine(&q)
+	qNeg.Neg(&q)
+
+	var result [4]GT
+	var l, l1, l2 lineEvaluation
+
+	// f_{a0,Q}(P)
+	result[0].SetOne()
+
+	for i := 77; i >= 0; i-- {
+		result[0].Square(&result[0])
+
+		qW12.DoubleStep(&l)
+		// line evaluation
+		l.r1.MulByElement(&l.r1, &p.Y)
+		l.r2.MulByElement(&l.r2, &p.X)
+		result[0].MulBy023(&l.r1, &l.r2, &l.r0)
+
+		if loopCounterOptAte0[i] == 1 {
+			qW12.AddMixedStep(&l, &q)
+			// line evaluation
+			l.r1.MulByElement(&l.r1, &p.Y)
+			l.r2.MulByElement(&l.r2, &p.X)
+			result[0].MulBy023(&l.r1, &l.r2, &l.r0)
+
+		} else if loopCounterOptAte0[i] == -1 {
+			qW12.AddMixedStep(&l, &qNeg)
+			// line evaluation
+			l.r1.MulByElement(&l.r1, &p.Y)
+			l.r2.MulByElement(&l.r2, &p.X)
+			result[0].MulBy023(&l.r1, &l.r2, &l.r0)
+		}
+	}
+
+	result[0].Conjugate(&result[0])
+
+	qW12_a0.Set(&qW12)
+
+	qW12.FromAffine(&q)
+
+	// f_{a1,Q}(P)
+	result[1].SetOne()
+
+	for i := 76; i >= 0; i-- {
+		result[1].Square(&result[1])
+
+		qW12.DoubleStep(&l)
+		// line evaluation
+		l.r1.MulByElement(&l.r1, &p.Y)
+		l.r2.MulByElement(&l.r2, &p.X)
+		result[1].MulBy023(&l.r1, &l.r2, &l.r0)
+
+		if loopCounterOptAte1[i] == 1 {
+			qW12.AddMixedStep(&l, &q)
+			// line evaluation
+			l.r1.MulByElement(&l.r1, &p.Y)
+			l.r2.MulByElement(&l.r2, &p.X)
+			result[1].MulBy023(&l.r1, &l.r2, &l.r0)
+
+		} else if loopCounterOptAte1[i] == -1 {
+			qW12.AddMixedStep(&l, &qNeg)
+			// line evaluation
+			l.r1.MulByElement(&l.r1, &p.Y)
+			l.r2.MulByElement(&l.r2, &p.X)
+			result[1].MulBy023(&l.r1, &l.r2, &l.r0)
+		}
+	}
+
+	result[1].Frobenius(&result[1])
+
+	qFrob.FromW12(&qW12)
+	qFrob.X.Conjugate(&qFrob.X)
+	qFrob.Y.Conjugate(&qFrob.Y)
+
+	qW12.FromAffine(&q)
+
+	// f_{a2,Q}(P)
+	result[2].SetOne()
+
+	for i := 76; i >= 0; i-- {
+		result[2].Square(&result[2])
+
+		qW12.DoubleStep(&l)
+		// line evaluation
+		l.r1.MulByElement(&l.r1, &p.Y)
+		l.r2.MulByElement(&l.r2, &p.X)
+		result[2].MulBy023(&l.r1, &l.r2, &l.r0)
+
+		if loopCounterOptAte2[i] == 1 {
+			qW12.AddMixedStep(&l, &q)
+			// line evaluation
+			l.r1.MulByElement(&l.r1, &p.Y)
+			l.r2.MulByElement(&l.r2, &p.X)
+			result[2].MulBy023(&l.r1, &l.r2, &l.r0)
+
+		} else if loopCounterOptAte2[i] == -1 {
+			qW12.AddMixedStep(&l, &qNeg)
+			// line evaluation
+			l.r1.MulByElement(&l.r1, &p.Y)
+			l.r2.MulByElement(&l.r2, &p.X)
+			result[2].MulBy023(&l.r1, &l.r2, &l.r0)
+		}
+	}
+
+	result[2].FrobeniusSquare(&result[2]).
+		Conjugate(&result[2])
+
+	qFrobSquare.Set(&qW12)
+
+	qW12.FromAffine(&q)
+
+	// f_{a3,Q}(P)
+	result[3].SetOne()
+
+	for i := 77; i >= 0; i-- {
+		result[3].Square(&result[3])
+
+		qW12.DoubleStep(&l)
+		// line evaluation
+		l.r1.MulByElement(&l.r1, &p.Y)
+		l.r2.MulByElement(&l.r2, &p.X)
+		result[3].MulBy023(&l.r1, &l.r2, &l.r0)
+
+		if loopCounterOptAte3[i] == 1 {
+			qW12.AddMixedStep(&l, &q)
+			// line evaluation
+			l.r1.MulByElement(&l.r1, &p.Y)
+			l.r2.MulByElement(&l.r2, &p.X)
+			result[3].MulBy023(&l.r1, &l.r2, &l.r0)
+
+		} else if loopCounterOptAte3[i] == -1 {
+			qW12.AddMixedStep(&l, &qNeg)
+			// line evaluation
+			l.r1.MulByElement(&l.r1, &p.Y)
+			l.r2.MulByElement(&l.r2, &p.X)
+			result[3].MulBy023(&l.r1, &l.r2, &l.r0)
+		}
+	}
+
+	result[3].FrobeniusCube(&result[3]).
+		Conjugate(&result[3])
+
+	qFrobCube.FromW12(&qW12)
+	qFrobCube.X.Conjugate(&qFrobCube.X)
+	qFrobCube.Y.Conjugate(&qFrobCube.Y)
+
+	// l_{a0*Q, a1*pi(Q)}(P)
+	qW12_a0.AddMixedStep(&l1, &qFrob)
+	l1.r1.MulByElement(&l1.r1, &p.Y)
+	l1.r2.MulByElement(&l1.r2, &p.X)
+	result[3].MulBy023(&l1.r1, &l1.r2, &l1.r0)
+
+	// l_{a2*pi^2(Q), a3*pi^3(Q)}(P)
+	qFrobSquare.AddMixedStep(&l2, &qFrobCube)
+	l2.r1.MulByElement(&l2.r1, &p.Y)
+	l2.r2.MulByElement(&l2.r2, &p.X)
+	result[3].MulBy023(&l2.r1, &l2.r2, &l2.r0)
+
+	// f0 * f1^q * f2^q2 * f3^q3 * l1 * l2
+	result[3].Mul(&result[3], &result[2]).
+		Mul(&result[3], &result[1]).
+		Mul(&result[3], &result[0])
+
+	return result[3], nil
+}
+
+// MillerLoopAte ate
 func MillerLoopAte(P []G1Affine, Q []G2Affine) (GT, error) {
 	// check input size match
 	n := len(P)

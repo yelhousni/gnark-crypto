@@ -295,6 +295,33 @@ func (z *E8) IsInSubGroup() bool {
 	return x.Equal(&one)
 }
 
+// Frobenius
+func (z *E8) Frobenius(x *E8) *E8 {
+
+	_p := fp.Modulus()
+	z.Exp(x, *_p)
+
+	return z
+}
+
+// FrobeniusSquare
+func (z *E8) FrobeniusSquare(x *E8) *E8 {
+
+	_p := fp.Modulus()
+	z.Exp(x, *_p).Exp(z, *_p)
+
+	return z
+}
+
+// FrobeniusCube
+func (z *E8) FrobeniusCube(x *E8) *E8 {
+
+	_p := fp.Modulus()
+	z.Exp(x, *_p).Exp(z, *_p).Exp(z, *_p)
+
+	return z
+}
+
 // SizeOfGT represents the size in bytes that a GT element need in binary form
 const SizeOfGT = sizeOfFp * 8
 const sizeOfFp = 80

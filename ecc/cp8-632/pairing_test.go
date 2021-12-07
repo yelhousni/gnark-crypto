@@ -61,7 +61,7 @@ func TestPairing(t *testing.T) {
 	properties.Property("[CP8-632] bilinearity", prop.ForAll(
 		func(a, b fr.Element) bool {
 
-			var res, resa, resb, resab, zero GT
+			var res, resa, resb, resab, zero, one GT
 
 			var ag1 G1Affine
 			var bg2 G2Affine
@@ -75,6 +75,8 @@ func TestPairing(t *testing.T) {
 			ag1.ScalarMultiplication(&g1GenAff, &abigint)
 			bg2.ScalarMultiplication(&g2GenAff, &bbigint)
 
+            one.SetOne()
+
 			res, _ = Pair([]G1Affine{g1GenAff}, []G2Affine{g2GenAff})
 			resa, _ = Pair([]G1Affine{ag1}, []G2Affine{g2GenAff})
 			resb, _ = Pair([]G1Affine{g1GenAff}, []G2Affine{bg2})
@@ -83,7 +85,7 @@ func TestPairing(t *testing.T) {
 			resa.Exp(&resa, bbigint)
 			resb.Exp(&resb, abigint)
 
-			return resab.Equal(&resa) && resab.Equal(&resb) && !res.Equal(&zero)
+			return resab.Equal(&resa) && resab.Equal(&resb) && !res.Equal(&zero) && !res.Equal(&one)
 
 		},
 		genR1,

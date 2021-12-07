@@ -118,6 +118,25 @@ func (p *G2Affine) FromJacobian(p1 *G2Jac) *G2Affine {
 	return p
 }
 
+// FromW12 rescale a point in W12 coord in z=1 plane
+func (p *G2Affine) FromW12(p1 *g2W12) *G2Affine {
+
+	var a, b fptower.E2
+
+	if p1.z.IsZero() {
+		p.X.SetZero()
+		p.Y.SetZero()
+		return p
+	}
+
+	a.Inverse(&p1.z)
+	b.Square(&a)
+	p.X.Mul(&p1.x, &a)
+	p.Y.Mul(&p1.y, &b)
+
+	return p
+}
+
 func (p *G2Affine) String() string {
 	var x, y fptower.E2
 	x.Set(&p.X)
