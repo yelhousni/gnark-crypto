@@ -26,6 +26,8 @@ import (
 	"github.com/consensys/gnark-crypto/internal/parallel"
 )
 
+// TODO: hash-to-curve
+
 // G2Affine point in affine coordinates
 type G2Affine struct {
 	X, Y fptower.E2
@@ -56,6 +58,7 @@ func (p *G2Affine) Set(a *G2Affine) *G2Affine {
 }
 
 // ScalarMultiplication computes and returns p = a*s
+// TODO: GLV
 func (p *G2Affine) ScalarMultiplication(a *G2Affine, s *big.Int) *G2Affine {
 	var _p G2Jac
 	_p.FromAffine(a)
@@ -665,7 +668,8 @@ func (p *g2JacExtended) double(q *g2JacExtended) *g2JacExtended {
 	S.Mul(&q.X, &V)
 	XX.Square(&q.X)
 	M.Double(&XX).
-		Add(&M, &XX) // -> + a, but a=0 here
+		Add(&M, &XX).
+		Add(&M, &aTwistCurveCoeff)
 	U.Mul(&W, &q.Y)
 
 	p.X.Square(&M).
@@ -803,7 +807,8 @@ func (p *g2JacExtended) doubleNegMixed(q *G2Affine) *g2JacExtended {
 	S.Mul(&q.X, &V)
 	XX.Square(&q.X)
 	M.Double(&XX).
-		Add(&M, &XX) // -> + a, but a=0 here
+		Add(&M, &XX).
+		Add(&M, &aTwistCurveCoeff)
 	S2.Double(&S)
 	L.Mul(&W, &q.Y)
 
@@ -830,7 +835,8 @@ func (p *g2JacExtended) doubleMixed(q *G2Affine) *g2JacExtended {
 	S.Mul(&q.X, &V)
 	XX.Square(&q.X)
 	M.Double(&XX).
-		Add(&M, &XX) // -> + a, but a=0 here
+		Add(&M, &XX).
+		Add(&M, &aTwistCurveCoeff)
 	S2.Double(&S)
 	L.Mul(&W, &q.Y)
 

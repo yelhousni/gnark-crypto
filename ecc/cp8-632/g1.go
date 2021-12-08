@@ -25,6 +25,8 @@ import (
 	"github.com/consensys/gnark-crypto/internal/parallel"
 )
 
+// TODO: hash-to-curve
+
 // G1Affine point in affine coordinates
 type G1Affine struct {
 	X, Y fp.Element
@@ -55,6 +57,7 @@ func (p *G1Affine) Set(a *G1Affine) *G1Affine {
 }
 
 // ScalarMultiplication computes and returns p = a*s
+// TODO: GLV
 func (p *G1Affine) ScalarMultiplication(a *G1Affine, s *big.Int) *G1Affine {
 	var _p G1Jac
 	_p.FromAffine(a)
@@ -549,7 +552,8 @@ func (p *g1JacExtended) double(q *g1JacExtended) *g1JacExtended {
 	S.Mul(&q.X, &V)
 	XX.Square(&q.X)
 	M.Double(&XX).
-		Add(&M, &XX) // -> + a, but a=0 here
+		Add(&M, &XX).
+		Add(&M, &aCurveCoeff)
 	U.Mul(&W, &q.Y)
 
 	p.X.Square(&M).
@@ -687,7 +691,8 @@ func (p *g1JacExtended) doubleNegMixed(q *G1Affine) *g1JacExtended {
 	S.Mul(&q.X, &V)
 	XX.Square(&q.X)
 	M.Double(&XX).
-		Add(&M, &XX) // -> + a, but a=0 here
+		Add(&M, &XX).
+		Add(&M, &aCurveCoeff)
 	S2.Double(&S)
 	L.Mul(&W, &q.Y)
 
@@ -714,7 +719,8 @@ func (p *g1JacExtended) doubleMixed(q *G1Affine) *g1JacExtended {
 	S.Mul(&q.X, &V)
 	XX.Square(&q.X)
 	M.Double(&XX).
-		Add(&M, &XX) // -> + a, but a=0 here
+		Add(&M, &XX).
+		Add(&M, &aCurveCoeff)
 	S2.Double(&S)
 	L.Mul(&W, &q.Y)
 
