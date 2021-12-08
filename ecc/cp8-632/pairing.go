@@ -119,7 +119,7 @@ func MillerLoopOptAteSingle(p G1Affine, q G2Affine) (GT, error) {
 
 	// W12 points for Q
 	var qW12, qW12_a0, qFrobSquare g2W12
-	var qNeg, qFrob, qFrobCube, qFrobSquareAff G2Affine
+	var qNeg, qFrob, qFrobCube G2Affine
 	qW12.FromAffine(&q)
 	qNeg.Neg(&q)
 
@@ -190,7 +190,6 @@ func MillerLoopOptAteSingle(p G1Affine, q G2Affine) (GT, error) {
 
 	result[1].Frobenius(&result[1])
 
-	// TODO: reduce FromW12 calls (inverse)
 	qFrob.FromW12(&qW12)
 	qFrob.Frobenius(&qFrob)
 
@@ -228,10 +227,7 @@ func MillerLoopOptAteSingle(p G1Affine, q G2Affine) (GT, error) {
 		Conjugate(&result[2])
 
 	qFrobSquare.Neg(&qW12)
-	qFrobSquareAff.FromW12(&qFrobSquare)
-	qFrobSquareAff.Frobenius(&qFrobSquareAff).
-		Frobenius(&qFrobSquareAff)
-	qFrobSquare.FromAffine(&qFrobSquareAff)
+	qFrobSquare.FrobeniusSquare(&qFrobSquare)
 
 	qW12.FromAffine(&q)
 
@@ -268,9 +264,7 @@ func MillerLoopOptAteSingle(p G1Affine, q G2Affine) (GT, error) {
 
 	qW12.Neg(&qW12)
 	qFrobCube.FromW12(&qW12)
-	qFrobCube.Frobenius(&qFrobCube).
-		Frobenius(&qFrobCube).
-		Frobenius(&qFrobCube)
+	qFrobCube.FrobeniusCube(&qFrobCube)
 
 	// l_{a0*Q, a1*pi(Q)}(P)
 	qW12_a0.AddMixedStep(&l1, &qFrob)
