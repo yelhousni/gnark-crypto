@@ -242,49 +242,6 @@ func (z *E8) Conjugate(x *E8) *E8 {
 	return z
 }
 
-// MulBy023 multiplication by sparse element (c0,0,c2,c3)
-func (z *E8) MulBy023(c0, c2, c3 *E2) *E8 {
-
-	var c0z0, c2z2, c3z3, c0z1, c2z1, c3z1, z0, z1, z2, z3, A, B, C, t E2
-
-	c0z0.Mul(c0, &z.C0.B0)
-	c2z2.Mul(c2, &z.C1.B0)
-	c3z3.Mul(c3, &z.C1.B1)
-	c0z1.Mul(c0, &z.C0.B1)
-	c2z1.Mul(c2, &z.C0.B1)
-	c3z1.Mul(c3, &z.C0.B1)
-
-	t.Add(c0, c2)
-	A.Add(&z.C0.B0, &z.C1.B0).
-		Mul(&A, &t).
-		Sub(&A, &c0z0).
-		Sub(&A, &c2z2) // A = c0f2 + c2f0
-
-	t.Add(c0, c3)
-	B.Add(&z.C0.B0, &z.C1.B1).
-		Mul(&B, &t).
-		Sub(&B, &c0z0).
-		Sub(&B, &c3z3) // B = c0f3 + c3f0
-
-	t.Add(c2, c3)
-	C.Add(&z.C1.B0, &z.C1.B1).
-		Mul(&C, &t).
-		Sub(&C, &c2z2).
-		Sub(&C, &c3z3) // C = c2f3 + c3f2
-
-	z0.MulByNonResidue(&C).Add(&z0, &c0z0)
-	z1.MulByNonResidue(&c3z3).Add(&z1, &c2z2).Add(&z1, &c0z1)
-	z2.MulByNonResidue(&c3z1).Add(&z2, &A)
-	z3.Add(&c2z1, &B)
-
-	z.C0.B0.Set(&z0)
-	z.C0.B1.Set(&z1)
-	z.C1.B0.Set(&z2)
-	z.C1.B1.Set(&z3)
-
-	return z
-}
-
 // IsInSubGroup ensures GT/E8 is in correct sugroup
 func (z *E8) IsInSubGroup() bool {
 	var x, one E8
@@ -293,36 +250,6 @@ func (z *E8) IsInSubGroup() bool {
 	x.Exp(z, *_r)
 
 	return x.Equal(&one)
-}
-
-// Frobenius
-// TODO: optimize
-func (z *E8) Frobenius(x *E8) *E8 {
-
-	_p := fp.Modulus()
-	z.Exp(x, *_p)
-
-	return z
-}
-
-// FrobeniusSquare
-// TODO: optimize
-func (z *E8) FrobeniusSquare(x *E8) *E8 {
-
-	_p := fp.Modulus()
-	z.Exp(x, *_p).Exp(z, *_p)
-
-	return z
-}
-
-// FrobeniusCube
-// TODO: optimize
-func (z *E8) FrobeniusCube(x *E8) *E8 {
-
-	_p := fp.Modulus()
-	z.Exp(x, *_p).Exp(z, *_p).Exp(z, *_p)
-
-	return z
 }
 
 // SizeOfGT represents the size in bytes that a GT element need in binary form

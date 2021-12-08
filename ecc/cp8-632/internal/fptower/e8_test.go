@@ -17,6 +17,7 @@ package fptower
 import (
 	"testing"
 
+	"github.com/consensys/gnark-crypto/ecc/cp8-632/fp"
 	"github.com/leanovate/gopter"
 	"github.com/leanovate/gopter/prop"
 )
@@ -33,6 +34,36 @@ func TestE8ReceiverIsOperand(t *testing.T) {
 
 	genA := GenE8()
 	genB := GenE8()
+
+	properties.Property("[CP8-632] Having the receiver as operand (FrobeniusCube) should output the same result", prop.ForAll(
+		func(a *E8) bool {
+			var b E8
+			b.FrobeniusCube(a)
+			a.FrobeniusCube(a)
+			return a.Equal(&b)
+		},
+		genA,
+	))
+
+	properties.Property("[CP8-632] Having the receiver as operand (FrobeniusSquare) should output the same result", prop.ForAll(
+		func(a *E8) bool {
+			var b E8
+			b.FrobeniusSquare(a)
+			a.FrobeniusSquare(a)
+			return a.Equal(&b)
+		},
+		genA,
+	))
+
+	properties.Property("[CP8-632] Having the receiver as operand (Frobenius) should output the same result", prop.ForAll(
+		func(a *E8) bool {
+			var b E8
+			b.Frobenius(a)
+			a.Frobenius(a)
+			return a.Equal(&b)
+		},
+		genA,
+	))
 
 	properties.Property("[CP8-632] Having the receiver as operand (addition) should output the same result", prop.ForAll(
 		func(a, b *E8) bool {
@@ -164,6 +195,39 @@ func TestE8Ops(t *testing.T) {
 			b.Mul(a, a)
 			c.Square(a)
 			return b.Equal(&c)
+		},
+		genA,
+	))
+
+	properties.Property("[CP8-632] FrobeniusCube of x in E8 should be equal to x^q", prop.ForAll(
+		func(a *E8) bool {
+			var b, c E8
+			q := fp.Modulus()
+			b.FrobeniusCube(a)
+			c.Exp(a, *q).Exp(&c, *q).Exp(&c, *q)
+			return c.Equal(&b)
+		},
+		genA,
+	))
+
+	properties.Property("[CP8-632] FrobeniusSquare of x in E8 should be equal to x^q2", prop.ForAll(
+		func(a *E8) bool {
+			var b, c E8
+			q := fp.Modulus()
+			b.FrobeniusSquare(a)
+			c.Exp(a, *q).Exp(&c, *q)
+			return c.Equal(&b)
+		},
+		genA,
+	))
+
+	properties.Property("[CP8-632] Frobenius of x in E8 should be equal to x^q3", prop.ForAll(
+		func(a *E8) bool {
+			var b, c E8
+			q := fp.Modulus()
+			b.Frobenius(a)
+			c.Exp(a, *q)
+			return c.Equal(&b)
 		},
 		genA,
 	))
