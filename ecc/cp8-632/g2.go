@@ -660,16 +660,18 @@ func (p *g2JacExtended) add(q *g2JacExtended) *g2JacExtended {
 // double point in ZZ coords
 // http://www.hyperelliptic.org/EFD/g2p/auto-shortw-xyzz.html#doubling-dbl-2008-s-1
 func (p *g2JacExtended) double(q *g2JacExtended) *g2JacExtended {
-	var U, V, W, S, XX, M fptower.E2
+	var tmp, U, V, W, S, XX, M fptower.E2
 
 	U.Double(&q.Y)
 	V.Square(&U)
 	W.Mul(&U, &V)
 	S.Mul(&q.X, &V)
 	XX.Square(&q.X)
+	tmp.Square(&q.ZZ).
+		Mul(&tmp, &aTwistCurveCoeff)
 	M.Double(&XX).
 		Add(&M, &XX).
-		Add(&M, &aTwistCurveCoeff)
+		Add(&M, &tmp)
 	U.Mul(&W, &q.Y)
 
 	p.X.Square(&M).

@@ -544,16 +544,18 @@ func (p *g1JacExtended) add(q *g1JacExtended) *g1JacExtended {
 // double point in ZZ coords
 // http://www.hyperelliptic.org/EFD/g1p/auto-shortw-xyzz.html#doubling-dbl-2008-s-1
 func (p *g1JacExtended) double(q *g1JacExtended) *g1JacExtended {
-	var U, V, W, S, XX, M fp.Element
+	var U, V, W, S, XX, M, tmp fp.Element
 
 	U.Double(&q.Y)
 	V.Square(&U)
 	W.Mul(&U, &V)
 	S.Mul(&q.X, &V)
 	XX.Square(&q.X)
+	tmp.Square(&q.ZZ).
+		Mul(&tmp, &aCurveCoeff)
 	M.Double(&XX).
 		Add(&M, &XX).
-		Add(&M, &aCurveCoeff)
+		Add(&M, &tmp)
 	U.Mul(&W, &q.Y)
 
 	p.X.Square(&M).
@@ -935,6 +937,15 @@ func BatchScalarMultiplicationG1(base *G1Affine, scalars []fr.Element) []G1Affin
 	return toReturnAff
 }
 
+// phi assigns p to phi(a) where phi: (x,y)->(-x,w*y), and returns p
+func (p *G1Jac) phi(a *G1Jac) *G1Jac {
+	p.X.Neg(&a.X)
+	p.Y.Mul(&a.Y, &squareRootOneG1)
+	p.Z.Set(&a.Z)
+	return p
+}
+
+/*
 // selector stores the index, mask and shifts needed to select bits from a scalar
 // it is used during the multiExp algorithm or the batch scalar multiplication
 type selector struct {
@@ -1033,11 +1044,4 @@ func partitionScalars(scalars []fr.Element, c uint64, scalarsMont bool, nbTasks 
 	}, nbTasks)
 	return toReturn
 }
-
-// phi assigns p to phi(a) where phi: (x,y)->(-x,w*y), and returns p
-func (p *G1Jac) phi(a *G1Jac) *G1Jac {
-	p.X.Neg(&a.X)
-	p.Y.Mul(&a.Y, &squareRootOneG1)
-	p.Z.Set(&a.Z)
-	return p
-}
+*/
