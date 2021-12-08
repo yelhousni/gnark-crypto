@@ -56,9 +56,7 @@ func FinalExponentiation(z *GT, _z ...*GT) GT {
 	result.Mul(&t, &result)
 
 	// hard part (up to permutation)
-	// TODO: use cyclo squares
-	// TODO: use a short addition chain
-	result.Exp(&result, finalExponentHardPart)
+	result.ExpHardPart(&result)
 
 	return result
 }
