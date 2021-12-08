@@ -25,8 +25,6 @@ import (
 	"github.com/consensys/gnark-crypto/internal/parallel"
 )
 
-// TODO: hash-to-curve
-
 // G1Affine point in affine coordinates
 type G1Affine struct {
 	X, Y fp.Element

@@ -28,6 +28,33 @@ import (
 	"github.com/leanovate/gopter/prop"
 )
 
+func TestMapToCurveG2(t *testing.T) {
+
+	parameters := gopter.DefaultTestParameters()
+	parameters.MinSuccessfulTests = 10
+
+	properties := gopter.NewProperties(parameters)
+
+	properties.Property("[G2] Svsw mapping should output point on the curve", prop.ForAll(
+		func(a fptower.E2) bool {
+			g := MapToCurveG2Svdw(a)
+			return g.IsInSubGroup()
+		},
+		GenE2(),
+	))
+
+	properties.Property("[G2] Svsw mapping should be deterministic", prop.ForAll(
+		func(a fptower.E2) bool {
+			g1 := MapToCurveG2Svdw(a)
+			g2 := MapToCurveG2Svdw(a)
+			return g1.Equal(&g2)
+		},
+		GenE2(),
+	))
+
+	properties.TestingRun(t, gopter.ConsoleReporter(false))
+}
+
 func TestG2AffineEndomorphism(t *testing.T) {
 
 	parameters := gopter.DefaultTestParameters()

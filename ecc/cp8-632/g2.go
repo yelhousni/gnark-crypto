@@ -26,8 +26,6 @@ import (
 	"github.com/consensys/gnark-crypto/internal/parallel"
 )
 
-// TODO: hash-to-curve
-
 // G2Affine point in affine coordinates
 type G2Affine struct {
 	X, Y fptower.E2
