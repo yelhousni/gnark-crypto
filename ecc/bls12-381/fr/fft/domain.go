@@ -236,6 +236,5 @@ func (d *Domain) ReadFrom(r io.Reader) (int64, error) {
 
 	// store the bit reversed coset tables if needed
 	d.reverseCosetTables()
-
 	return dec.BytesRead(), nil
 }
