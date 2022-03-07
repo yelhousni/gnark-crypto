@@ -461,7 +461,7 @@ func (p *PointExtended) FromAffine(p1 *PointAffine) *PointExtended {
 
 // Add adds points in extended coordinates
 // dedicated addition
-{{if eq .Name "bls12-378"}}
+{{if or (eq .Name "bls12-378") (eq .Name "bw6-756")}}
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended.html#addition-add-2008-hwcd-2
 {{else}}
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended-1.html#addition-add-2008-hwcd-4
@@ -474,7 +474,7 @@ func (p *PointExtended) Add(p1, p2 *PointExtended) *PointExtended {
 	}
 
 	var A, B, C, D, E, F, G, H, tmp fr.Element
-    {{if eq .Name "bls12-378"}}
+    {{if or (eq .Name "bls12-378") (eq .Name "bw6-756")}}
     A.Mul(&p1.X, &p2.X)
 	B.Mul(&p1.Y, &p2.Y)
 	C.Mul(&p1.Z, &p2.T)
@@ -513,7 +513,7 @@ func (p *PointExtended) Add(p1, p2 *PointExtended) *PointExtended {
 }
 
 // MixedAdd adds a point in extended coordinates to a point in affine coordinates
-{{if eq .Name "bls12-378"}}
+{{if or (eq .Name "bls12-378") (eq .Name "bw6-756")}}
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended.html#addition-madd-2008-hwcd-2
 {{else}}
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended-1.html#addition-madd-2008-hwcd-4
@@ -530,7 +530,7 @@ func (p *PointExtended) MixedAdd(p1 *PointExtended, p2 *PointAffine) *PointExten
 		return p
 	}
 
-{{if eq .Name "bls12-378"}}
+{{if or (eq .Name "bls12-378") (eq .Name "bw6-756")}}
     A.Mul(&p1.X, &p2.X)
 	B.Mul(&p1.Y, &p2.Y)
 	C.Mul(&p1.Z, &p2.X).
@@ -571,7 +571,7 @@ func (p *PointExtended) MixedAdd(p1 *PointExtended, p2 *PointAffine) *PointExten
 
 // Double adds points in extended coordinates
 // Dedicated doubling
-{{if eq .Name "bls12-378"}}
+{{if or (eq .Name "bls12-378") (eq .Name "bw6-756")}}
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended.html#doubling-dbl-2008-hwcd
 {{else}}
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended-1.html#doubling-dbl-2008-hwcd
@@ -604,7 +604,7 @@ func (p *PointExtended) Double(p1 *PointExtended) *PointExtended {
 
 // MixedDouble adds points in extended coordinates
 // Dedicated mixed doubling
-{{if eq .Name "bls12-378"}}
+{{if or (eq .Name "bls12-378") (eq .Name "bw6-756")}}
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended.html#doubling-mdbl-2008-hwcd
 {{else}}
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended-1.html#doubling-mdbl-2008-hwcd
