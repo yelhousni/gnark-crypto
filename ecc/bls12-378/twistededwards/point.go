@@ -479,7 +479,9 @@ func (p *PointExtended) FromAffine(p1 *PointAffine) *PointExtended {
 
 // Add adds points in extended coordinates
 // dedicated addition
+
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended.html#addition-add-2008-hwcd-2
+
 func (p *PointExtended) Add(p1, p2 *PointExtended) *PointExtended {
 
 	if p1.Equal(p2) {
@@ -488,6 +490,7 @@ func (p *PointExtended) Add(p1, p2 *PointExtended) *PointExtended {
 	}
 
 	var A, B, C, D, E, F, G, H, tmp fr.Element
+
 	A.Mul(&p1.X, &p2.X)
 	B.Mul(&p1.Y, &p2.Y)
 	C.Mul(&p1.Z, &p2.T)
@@ -500,6 +503,7 @@ func (p *PointExtended) Add(p1, p2 *PointExtended) *PointExtended {
 		Sub(&F, &A)
 	mulByA(&A)
 	G.Add(&A, &B)
+
 	H.Sub(&D, &C)
 
 	p.X.Mul(&E, &F)
@@ -511,8 +515,9 @@ func (p *PointExtended) Add(p1, p2 *PointExtended) *PointExtended {
 }
 
 // MixedAdd adds a point in extended coordinates to a point in affine coordinates
-// dedicated mixed addition
+
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended.html#addition-madd-2008-hwcd-2
+
 func (p *PointExtended) MixedAdd(p1 *PointExtended, p2 *PointAffine) *PointExtended {
 
 	var A, B, C, D, E, F, G, H, tmp fr.Element
@@ -538,19 +543,22 @@ func (p *PointExtended) MixedAdd(p1 *PointExtended, p2 *PointAffine) *PointExten
 		Sub(&F, &A)
 	mulByA(&A)
 	G.Add(&A, &B)
+
 	H.Sub(&D, &C)
 
-	p.X.Mul(&E, &F)
+	p.X.Mul(&F, &E)
 	p.Y.Mul(&G, &H)
 	p.T.Mul(&E, &H)
-	p.Z.Mul(&F, &G)
+	p.Z.Mul(&G, &F)
 
 	return p
 }
 
 // Double adds points in extended coordinates
-// dedicated doubling
+// Dedicated doubling
+
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended.html#doubling-dbl-2008-hwcd
+
 func (p *PointExtended) Double(p1 *PointExtended) *PointExtended {
 
 	var A, B, C, D, E, F, G, H fr.Element
@@ -579,7 +587,9 @@ func (p *PointExtended) Double(p1 *PointExtended) *PointExtended {
 
 // MixedDouble adds points in extended coordinates
 // Dedicated mixed doubling
+
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended.html#doubling-mdbl-2008-hwcd
+
 func (p *PointExtended) MixedDouble(p1 *PointExtended) *PointExtended {
 
 	var A, B, D, E, G, H, two fr.Element
