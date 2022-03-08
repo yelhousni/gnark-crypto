@@ -177,7 +177,7 @@ func (p *G1Jac) Neg(a *G1Jac) *G1Jac {
 	return p
 }
 
-// SubAssign substracts two points on the curve
+// SubAssign subtracts two points on the curve
 func (p *G1Jac) SubAssign(a *G1Jac) *G1Jac {
 	var tmp G1Jac
 	tmp.Set(a)
@@ -531,6 +531,7 @@ func (p *G1Jac) ClearCofactor(a *G1Jac) *G1Jac {
 	p.phi(&L1).AddAssign(&L0)
 
 	return p
+
 }
 
 // -------------------------------------------------------------------------------------------------

@@ -177,7 +177,7 @@ func (p *G2Jac) Neg(a *G2Jac) *G2Jac {
 	return p
 }
 
-// SubAssign substracts two points on the curve
+// SubAssign subtracts two points on the curve
 func (p *G2Jac) SubAssign(a *G2Jac) *G2Jac {
 	var tmp G2Jac
 	tmp.Set(a)
@@ -371,7 +371,6 @@ func (p *G2Jac) IsOnCurve() bool {
 	return left.Equal(&right)
 }
 
-// IsInSubGroup returns true if p is on the r-torsion, false otherwise.
 // https://eprint.iacr.org/2021/1130.pdf, sec.4
 // psi(p) = u*P
 func (p *G2Jac) IsInSubGroup() bool {
