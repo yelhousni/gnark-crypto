@@ -27,6 +27,7 @@ func Generate(conf config.Curve, baseDir string, bgen *bavard.BatchGenerator) er
 		{File: filepath.Join(baseDir, "e12_test.go"), Templates: []string{"tests/fq12.go.tmpl"}},
 		{File: filepath.Join(baseDir, "asm.go"), Templates: []string{"asm.go.tmpl"}, BuildTag: "!noadx"},
 		{File: filepath.Join(baseDir, "asm_noadx.go"), Templates: []string{"asm_noadx.go.tmpl"}, BuildTag: "noadx"},
+		{File: filepath.Join(baseDir, "multiexp.go"), Templates: []string{"multiexp.go.tmpl"}},
 	}
 
 	if err := bgen.Generate(conf, "fptower", "./tower/template/fq12over6over2", entries...); err != nil {
