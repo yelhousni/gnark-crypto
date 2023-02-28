@@ -25,7 +25,7 @@ import (
 
 	"fmt"
 
-	"github.com/consensys/gnark-crypto/ecc/curve25519/fr"
+	"github.com/consensys/gnark-crypto/ecc/curve25519/fp"
 )
 
 func Example() {
@@ -37,7 +37,7 @@ func Example() {
 	publicKey := privateKey.PublicKey
 
 	// generate a message (the size must be a multiple of the size of Fr)
-	var _msg fr.Element
+	var _msg fp.Element
 	_msg.SetRandom()
 	msg := _msg.Marshal()
 
@@ -153,7 +153,7 @@ func BenchmarkVerify(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	var frMsg fr.Element
+	var frMsg fp.Element
 	frMsg.SetString("44717650746155748460101257525078853138837311576962212923649547644148297035978")
 	msgBin := frMsg.Bytes()
 	signature, _ := privKey.Sign(msgBin[:], hFunc)

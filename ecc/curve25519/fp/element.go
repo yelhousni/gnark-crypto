@@ -37,8 +37,8 @@ import (
 //
 // Modulus q =
 //
-//	q[base10] = 7237005577332262213973186563042994240857116359379907606001950938285454250989
-//	q[base16] = 0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed
+//	q[base10] = 57896044618658097711785492504343953926634992332820282019728792003956564819949
+//	q[base16] = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed
 //
 // # Warning
 //
@@ -47,16 +47,16 @@ type Element [4]uint64
 
 const (
 	Limbs = 4   // number of 64 bits words needed to represent a Element
-	Bits  = 253 // number of bits needed to represent a Element
+	Bits  = 255 // number of bits needed to represent a Element
 	Bytes = 32  // number of bytes needed to represent a Element
 )
 
 // Field modulus q
 const (
-	q0 uint64 = 6346243789798364141
-	q1 uint64 = 1503914060200516822
-	q2 uint64 = 0
-	q3 uint64 = 1152921504606846976
+	q0 uint64 = 18446744073709551597
+	q1 uint64 = 18446744073709551615
+	q2 uint64 = 18446744073709551615
+	q3 uint64 = 9223372036854775807
 )
 
 var qElement = Element{
@@ -70,18 +70,18 @@ var _modulus big.Int // q stored as big.Int
 
 // Modulus returns q as a big.Int
 //
-//	q[base10] = 7237005577332262213973186563042994240857116359379907606001950938285454250989
-//	q[base16] = 0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed
+//	q[base10] = 57896044618658097711785492504343953926634992332820282019728792003956564819949
+//	q[base16] = 0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed
 func Modulus() *big.Int {
 	return new(big.Int).Set(&_modulus)
 }
 
 // q + r'.r = 1, i.e., qInvNeg = - q⁻¹ mod r
 // used for Montgomery reduction
-const qInvNeg uint64 = 15183074304973897243
+const qInvNeg uint64 = 9708812670373448219
 
 func init() {
-	_modulus.SetString("1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ed", 16)
+	_modulus.SetString("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffed", 16)
 }
 
 // NewElement returns a new Element from a uint64 value
@@ -199,10 +199,10 @@ func (z *Element) SetZero() *Element {
 
 // SetOne z = 1 (in Montgomery form)
 func (z *Element) SetOne() *Element {
-	z[0] = 15486807595281847581
-	z[1] = 14334777244411350896
-	z[2] = 18446744073709551614
-	z[3] = 1152921504606846975
+	z[0] = 38
+	z[1] = 0
+	z[2] = 0
+	z[3] = 0
 	return z
 }
 
@@ -231,7 +231,7 @@ func (z *Element) IsZero() bool {
 
 // IsOne returns z == 1
 func (z *Element) IsOne() bool {
-	return (z[3] ^ 1152921504606846975 | z[2] ^ 18446744073709551614 | z[1] ^ 14334777244411350896 | z[0] ^ 15486807595281847581) == 0
+	return (z[3] ^ 0 | z[2] ^ 0 | z[1] ^ 0 | z[0] ^ 38) == 0
 }
 
 // IsUint64 reports whether z can be represented as an uint64.
@@ -294,10 +294,10 @@ func (z *Element) LexicographicallyLargest() bool {
 	_z := z.Bits()
 
 	var b uint64
-	_, b = bits.Sub64(_z[0], 3173121894899182071, 0)
-	_, b = bits.Sub64(_z[1], 751957030100258411, b)
-	_, b = bits.Sub64(_z[2], 0, b)
-	_, b = bits.Sub64(_z[3], 576460752303423488, b)
+	_, b = bits.Sub64(_z[0], 18446744073709551607, 0)
+	_, b = bits.Sub64(_z[1], 18446744073709551615, b)
+	_, b = bits.Sub64(_z[2], 18446744073709551615, b)
+	_, b = bits.Sub64(_z[3], 4611686018427387903, b)
 
 	return b == 0
 }
@@ -314,7 +314,7 @@ func (z *Element) SetRandom() (*Element, error) {
 	const l = 32
 
 	// bitLen is the maximum bit length needed to encode a value < q.
-	const bitLen = 253
+	const bitLen = 255
 
 	// k is the maximum byte length needed to encode a value < q.
 	const k = (bitLen + 7) / 8
@@ -371,7 +371,7 @@ func (z *Element) Halve() {
 		z[0], carry = bits.Add64(z[0], q0, 0)
 		z[1], carry = bits.Add64(z[1], q1, carry)
 		z[2], carry = bits.Add64(z[2], q2, carry)
-		z[3], _ = bits.Add64(z[3], q3, carry)
+		z[3], carry = bits.Add64(z[3], q3, carry)
 
 	}
 	// z = z >> 1
@@ -379,6 +379,12 @@ func (z *Element) Halve() {
 	z[1] = z[1]>>1 | z[2]<<63
 	z[2] = z[2]>>1 | z[3]<<63
 	z[3] >>= 1
+
+	if carry != 0 {
+		// when we added q, the result was larger than our available limbs
+		// when we shift right, we need to set the highest bit
+		z[3] |= (1 << 63)
+	}
 
 }
 
@@ -396,7 +402,18 @@ func (z *Element) Add(x, y *Element) *Element {
 	z[0], carry = bits.Add64(x[0], y[0], 0)
 	z[1], carry = bits.Add64(x[1], y[1], carry)
 	z[2], carry = bits.Add64(x[2], y[2], carry)
-	z[3], _ = bits.Add64(x[3], y[3], carry)
+	z[3], carry = bits.Add64(x[3], y[3], carry)
+	// if we overflowed the last addition, z >= q
+	// if z >= q, z = z - q
+	if carry != 0 {
+		var b uint64
+		// we overflowed, so z >= q
+		z[0], b = bits.Sub64(z[0], q0, 0)
+		z[1], b = bits.Sub64(z[1], q1, b)
+		z[2], b = bits.Sub64(z[2], q2, b)
+		z[3], _ = bits.Sub64(z[3], q3, b)
+		return z
+	}
 
 	// if z ⩾ q → z -= q
 	if !z.smallerThanModulus() {
@@ -416,7 +433,18 @@ func (z *Element) Double(x *Element) *Element {
 	z[0], carry = bits.Add64(x[0], x[0], 0)
 	z[1], carry = bits.Add64(x[1], x[1], carry)
 	z[2], carry = bits.Add64(x[2], x[2], carry)
-	z[3], _ = bits.Add64(x[3], x[3], carry)
+	z[3], carry = bits.Add64(x[3], x[3], carry)
+	// if we overflowed the last addition, z >= q
+	// if z >= q, z = z - q
+	if carry != 0 {
+		var b uint64
+		// we overflowed, so z >= q
+		z[0], b = bits.Sub64(z[0], q0, 0)
+		z[1], b = bits.Sub64(z[1], q1, b)
+		z[2], b = bits.Sub64(z[2], q2, b)
+		z[3], _ = bits.Sub64(z[3], q3, b)
+		return z
+	}
 
 	// if z ⩾ q → z -= q
 	if !z.smallerThanModulus() {
@@ -802,10 +830,10 @@ func (z *Element) Exp(x Element, k *big.Int) *Element {
 // see section 2.3.2 of Tolga Acar's thesis
 // https://www.microsoft.com/en-us/research/wp-content/uploads/1998/06/97Acar.pdf
 var rSquare = Element{
-	11819153939886771969,
-	14991950615390032711,
-	14910419812499177061,
-	259310039853996605,
+	1444,
+	0,
+	0,
+	0,
 }
 
 // toMont converts z to Montgomery form
@@ -1193,10 +1221,10 @@ const (
 )
 
 const (
-	inversionCorrectionFactorWord0 = 6522646506689874889
-	inversionCorrectionFactorWord1 = 16142410450813172533
-	inversionCorrectionFactorWord2 = 3356595065678649769
-	inversionCorrectionFactorWord3 = 835624833837969537
+	inversionCorrectionFactorWord0 = 76
+	inversionCorrectionFactorWord1 = 0
+	inversionCorrectionFactorWord2 = 0
+	inversionCorrectionFactorWord3 = 6416921502028922880
 	invIterationsN                 = 18
 )
 
@@ -1400,11 +1428,11 @@ func approximate(x *Element, nBits int) uint64 {
 }
 
 // linearComb z = xC * x + yC * y;
-// 0 ≤ x, y < 2²⁵³
+// 0 ≤ x, y < 2²⁵⁵
 // |xC|, |yC| < 2⁶³
 func (z *Element) linearComb(x *Element, xC int64, y *Element, yC int64) {
-	// | (hi, z) | < 2 * 2⁶³ * 2²⁵³ = 2³¹⁷
-	// therefore | hi | < 2⁶¹ ≤ 2⁶³
+	// | (hi, z) | < 2 * 2⁶³ * 2²⁵⁵ = 2³¹⁹
+	// therefore | hi | < 2⁶³ ≤ 2⁶³
 	hi := z.linearCombNonModular(x, xC, y, yC)
 	z.montReduceSigned(z, hi)
 }

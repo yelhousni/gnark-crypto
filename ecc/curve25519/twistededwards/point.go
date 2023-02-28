@@ -22,34 +22,34 @@ import (
 	"math/big"
 	"math/bits"
 
-	"github.com/consensys/gnark-crypto/ecc/curve25519/fr"
+	"github.com/consensys/gnark-crypto/ecc/curve25519/fp"
 )
 
 // PointAffine point on a twisted Edwards curve
 type PointAffine struct {
-	X, Y fr.Element
+	X, Y fp.Element
 }
 
 // PointProj point in projective coordinates
 type PointProj struct {
-	X, Y, Z fr.Element
+	X, Y, Z fp.Element
 }
 
 // PointExtended point in extended coordinates
 type PointExtended struct {
-	X, Y, Z, T fr.Element
+	X, Y, Z, T fp.Element
 }
 
 const (
 	//following https://tools.ietf.org/html/rfc8032#section-3.1,
-	// an fr element x is negative if its binary encoding is
+	// an fp element x is negative if its binary encoding is
 	// lexicographically larger than -x.
 	mCompressedNegative = 0x80
 	mCompressedPositive = 0x00
 	mUnmask             = 0x7f
 
-	// size in byte of a compressed point (point.Y --> fr.Element)
-	sizePointCompressed = fr.Bytes
+	// size in byte of a compressed point (point.Y --> fp.Element)
+	sizePointCompressed = fp.Bytes
 )
 
 // Bytes returns the compressed point as a byte array
@@ -83,10 +83,10 @@ func (p *PointAffine) Marshal() []byte {
 	return b[:]
 }
 
-func computeX(y *fr.Element) (x fr.Element) {
+func computeX(y *fp.Element) (x fp.Element) {
 	initOnce.Do(initCurveParams)
 
-	var one, num, den fr.Element
+	var one, num, den fp.Element
 	one.SetOne()
 	num.Square(y)
 	den.Mul(&num, &curveParams.D)
@@ -149,13 +149,13 @@ func (p *PointAffine) Equal(p1 *PointAffine) bool {
 
 // IsZero returns true if p=0 false otherwise
 func (p *PointAffine) IsZero() bool {
-	var one fr.Element
+	var one fp.Element
 	one.SetOne()
 	return p.X.IsZero() && p.Y.Equal(&one)
 }
 
 // NewPointAffine creates a new instance of PointAffine
-func NewPointAffine(x, y fr.Element) PointAffine {
+func NewPointAffine(x, y fp.Element) PointAffine {
 	return PointAffine{x, y}
 }
 
@@ -164,7 +164,7 @@ func (p *PointAffine) IsOnCurve() bool {
 
 	ecurve := GetEdwardsCurve()
 
-	var lhs, rhs, tmp fr.Element
+	var lhs, rhs, tmp fp.Element
 
 	tmp.Mul(&p.Y, &p.Y)
 	lhs.Mul(&p.X, &p.X)
@@ -193,7 +193,7 @@ func (p *PointAffine) Add(p1, p2 *PointAffine) *PointAffine {
 
 	ecurve := GetEdwardsCurve()
 
-	var xu, yv, xv, yu, dxyuv, one, denx, deny fr.Element
+	var xu, yv, xv, yu, dxyuv, one, denx, deny fp.Element
 	pRes := new(PointAffine)
 	xv.Mul(&p1.X, &p2.Y)
 	yu.Mul(&p1.Y, &p2.X)
@@ -220,7 +220,7 @@ func (p *PointAffine) Add(p1, p2 *PointAffine) *PointAffine {
 func (p *PointAffine) Double(p1 *PointAffine) *PointAffine {
 
 	p.Set(p1)
-	var xx, yy, xy, denum, two fr.Element
+	var xx, yy, xy, denum, two fp.Element
 
 	xx.Square(&p.X)
 	yy.Square(&p.Y)
@@ -240,7 +240,7 @@ func (p *PointAffine) Double(p1 *PointAffine) *PointAffine {
 
 // FromProj sets p in affine from p in projective
 func (p *PointAffine) FromProj(p1 *PointProj) *PointAffine {
-	var I fr.Element
+	var I fp.Element
 	I.Inverse(&p1.Z)
 	p.X.Mul(&p1.X, &I)
 	p.Y.Mul(&p1.Y, &I)
@@ -249,7 +249,7 @@ func (p *PointAffine) FromProj(p1 *PointProj) *PointAffine {
 
 // FromExtended sets p in affine from p in extended coordinates
 func (p *PointAffine) FromExtended(p1 *PointExtended) *PointAffine {
-	var I fr.Element
+	var I fp.Element
 	I.Inverse(&p1.Z)
 	p.X.Mul(&p1.X, &I)
 	p.Y.Mul(&p1.Y, &I)
@@ -332,7 +332,7 @@ func (p *PointProj) MixedAdd(p1 *PointProj, p2 *PointAffine) *PointProj {
 
 	ecurve := GetEdwardsCurve()
 
-	var B, C, D, E, F, G, H, I fr.Element
+	var B, C, D, E, F, G, H, I fp.Element
 	B.Square(&p1.Z)
 	C.Mul(&p1.X, &p2.X)
 	D.Mul(&p1.Y, &p2.Y)
@@ -359,7 +359,7 @@ func (p *PointProj) MixedAdd(p1 *PointProj, p2 *PointAffine) *PointProj {
 // cf https://hyperelliptic.org/EFD/g1p/auto-twisted-projective.html#doubling-dbl-2008-bbjlp
 func (p *PointProj) Double(p1 *PointProj) *PointProj {
 
-	var B, C, D, E, F, H, J fr.Element
+	var B, C, D, E, F, H, J fp.Element
 
 	B.Add(&p1.X, &p1.Y).Square(&B)
 	C.Square(&p1.X)
@@ -384,7 +384,7 @@ func (p *PointProj) Add(p1, p2 *PointProj) *PointProj {
 
 	ecurve := GetEdwardsCurve()
 
-	var A, B, C, D, E, F, G, H, I fr.Element
+	var A, B, C, D, E, F, G, H, I fp.Element
 	A.Mul(&p1.Z, &p2.Z)
 	B.Square(&A)
 	C.Mul(&p1.X, &p2.X)
@@ -493,7 +493,7 @@ func (p *PointExtended) Add(p1, p2 *PointExtended) *PointExtended {
 		return p
 	}
 
-	var A, B, C, D, E, F, G, H, tmp fr.Element
+	var A, B, C, D, E, F, G, H, tmp fp.Element
 	A.Mul(&p1.X, &p2.X)
 	B.Mul(&p1.Y, &p2.Y)
 	C.Mul(&p1.Z, &p2.T)
@@ -520,7 +520,7 @@ func (p *PointExtended) Add(p1, p2 *PointExtended) *PointExtended {
 // MixedAdd adds a point in extended coordinates to a point in affine coordinates
 // See https://hyperelliptic.org/EFD/g1p/auto-twisted-extended.html#addition-madd-2008-hwcd-2
 func (p *PointExtended) MixedAdd(p1 *PointExtended, p2 *PointAffine) *PointExtended {
-	var A, B, C, D, E, F, G, H, tmp fr.Element
+	var A, B, C, D, E, F, G, H, tmp fp.Element
 
 	A.Mul(&p2.X, &p1.Z)
 	B.Mul(&p2.Y, &p1.Z)
@@ -559,7 +559,7 @@ func (p *PointExtended) MixedAdd(p1 *PointExtended, p2 *PointAffine) *PointExten
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended-1.html#doubling-dbl-2008-hwcd
 func (p *PointExtended) Double(p1 *PointExtended) *PointExtended {
 
-	var A, B, C, D, E, F, G, H fr.Element
+	var A, B, C, D, E, F, G, H fp.Element
 
 	A.Square(&p1.X)
 	B.Square(&p1.Y)
@@ -588,7 +588,7 @@ func (p *PointExtended) Double(p1 *PointExtended) *PointExtended {
 // https://hyperelliptic.org/EFD/g1p/auto-twisted-extended-1.html#doubling-mdbl-2008-hwcd
 func (p *PointExtended) MixedDouble(p1 *PointExtended) *PointExtended {
 
-	var A, B, D, E, G, H, two fr.Element
+	var A, B, D, E, G, H, two fp.Element
 	two.SetUint64(2)
 
 	A.Square(&p1.X)

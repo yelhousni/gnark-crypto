@@ -21,7 +21,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/consensys/gnark-crypto/ecc/curve25519/fr"
+	"github.com/consensys/gnark-crypto/ecc/curve25519/fp"
 	"github.com/leanovate/gopter"
 	"github.com/leanovate/gopter/prop"
 )
@@ -289,7 +289,7 @@ func TestField(t *testing.T) {
 
 			params := GetEdwardsCurve()
 
-			var z1, z2 fr.Element
+			var z1, z2 fp.Element
 			z1.SetBigInt(&s)
 			z2.Mul(&z1, &params.A)
 			mulByA(&z1)
@@ -357,7 +357,7 @@ func TestOps(t *testing.T) {
 
 			p1.Add(&p1, &p2)
 
-			var one fr.Element
+			var one fp.Element
 			one.SetOne()
 
 			return p1.IsOnCurve() && p1.IsZero()
@@ -730,11 +730,11 @@ func TestMarshal(t *testing.T) {
 }
 
 // GenBigInt generates a big.Int
-// TODO @thomas we use fr size as max bound here
+// TODO @thomas we use fp size as max bound here
 func GenBigInt() gopter.Gen {
 	return func(genParams *gopter.GenParameters) *gopter.GenResult {
 		var s big.Int
-		var b [fr.Bytes]byte
+		var b [fp.Bytes]byte
 		_, err := rand.Read(b[:])
 		if err != nil {
 			panic(err)

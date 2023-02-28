@@ -23,7 +23,7 @@ import (
 	"io"
 	"math/big"
 
-	"github.com/consensys/gnark-crypto/ecc/curve25519/fr"
+	"github.com/consensys/gnark-crypto/ecc/curve25519/fp"
 	"github.com/consensys/gnark-crypto/ecc/curve25519/twistededwards"
 	"github.com/consensys/gnark-crypto/signature"
 	"golang.org/x/crypto/blake2b"
@@ -33,7 +33,7 @@ var errNotOnCurve = errors.New("point not on curve")
 var errHashNeeded = errors.New("hFunc cannot be nil. We need a hash for Fiat-Shamir")
 
 const (
-	sizeFr         = fr.Bytes
+	sizeFr         = fp.Bytes
 	sizePublicKey  = sizeFr
 	sizeSignature  = 2 * sizeFr
 	sizePrivateKey = 2*sizeFr + 32
@@ -116,7 +116,7 @@ func (privKey *PrivateKey) Public() signature.PublicKey {
 }
 
 // Sign sign a sequence of field elements
-// For arbitrary strings use fr.Hash first
+// For arbitrary strings use fp.Hash first
 // Pure Eddsa version (see https://tools.ietf.org/html/rfc8032#page-8)
 func (privKey *PrivateKey) Sign(message []byte, hFunc hash.Hash) ([]byte, error) {
 

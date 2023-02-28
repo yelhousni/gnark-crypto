@@ -20,13 +20,13 @@ import (
 	"math/big"
 	"sync"
 
-	"github.com/consensys/gnark-crypto/ecc/curve25519/fr"
+	"github.com/consensys/gnark-crypto/ecc/curve25519/fp"
 )
 
 // CurveParams curve parameters: ax^2 + y^2 = 1 + d*x^2*y^2
 type CurveParams struct {
-	A, D     fr.Element
-	Cofactor fr.Element
+	A, D     fp.Element
+	Cofactor fp.Element
 	Order    big.Int
 	Base     PointAffine
 }
@@ -61,7 +61,7 @@ func initCurveParams() {
 	curveParams.Base.Y.SetString("46316835694926478169428394003475163141307993866256225615783033603165251855960")
 }
 
-// mulByA multiplies fr.Element by curveParams.A
-func mulByA(x *fr.Element) {
+// mulByA multiplies fp.Element by curveParams.A
+func mulByA(x *fp.Element) {
 	x.Neg(x)
 }
